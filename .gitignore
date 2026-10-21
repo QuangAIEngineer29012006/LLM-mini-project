@@ -1,10 +1,12 @@
 .venv/
 venv/
+node_modules/
 __pycache__/
+.pytest_cache/
 *.py[cod]
 .env
 .env.*
 !.env.example
-database/data/*.db
-database/data/*.db-*
-database/data/*.sqlite*
+database/data/
+frontend/dist/
+*.tsbuildinfo

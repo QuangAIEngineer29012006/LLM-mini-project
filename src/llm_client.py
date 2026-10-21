@@ -124,7 +124,7 @@ class FakeLLMClient:
             intent = "check_price"
         elif re.search(r"\b(con|ton kho|het hang)\b", text):
             intent = "check_stock"
-        elif re.search(r"\b(chot|mua|lay|dat)\b", text):
+        elif re.search(r"\b(chot|mua|lay|dat)\b|\bcho\s+(?:em|anh|chi|toi|minh)\s+(?:\d+|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b", text):
             intent = "create_order"
         elif re.search(r"\b(ban (?:nhung )?gi|tham khao|san pham|catalog|cho.*xem|tim|tu van|gioi thieu|mau nao|size nao|mau gi|thong tin)\b", text):
             intent = "browse_catalog"
@@ -151,7 +151,7 @@ class FakeLLMClient:
             color = next((_span(chunk, r"\b(" + re.escape(_plain(c)) + r")\b") for c in colors
                           if re.search(r"\b" + re.escape(_plain(c)) + r"\b", plain)), None)
             size = _span(chunk, r"\bsize\s+([a-z0-9]+)\b")
-            qty_text = _span(chunk, r"(?:\bchot|\bmua|\blay|\bdat|\bthanh|\bcon)\s+(-?\d+(?:[.,]\d+)?|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b")
+            qty_text = _span(chunk, r"(?:\bchot|\bmua|\blay|\bdat|\bthanh|\bcon|\bso luong|\bcho\s+(?:em|anh|chi|toi|minh))\s*[:=]?\s+(-?\d+(?:[.,]\d+)?|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b")
             if qty_text is None:
                 qty_text = _span(chunk, r"^\s*(\d+)\s+")
             qty = NUMBER_WORDS.get(_plain(qty_text or ""))

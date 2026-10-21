@@ -99,7 +99,7 @@ def run():
                       "passed": True, "steps": steps,
                       "limits": "Streamlit AppTest interactions; browser rendering and Gemini network call are not covered."}
             target = ROOT / "sample_results/frontend_smoke.json"
-            target.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+            target.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print(f"PASS: {len(steps)} UI integration steps across 6 pages; {target}")
         finally:
             server.terminate()

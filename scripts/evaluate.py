@@ -68,7 +68,7 @@ def evaluate(provider, output, case_ids=None, pace_seconds=0, case_file=None):
     base = Settings.from_env() if provider == "gemini" else Settings(db_path="unused")
     if provider == "gemini" and not base.api_key:
         raise SystemExit("Cần GEMINI_API_KEY trong .env để đánh giá Gemini.")
-    cases = json.loads((case_file or ROOT / "tests/test_cases.json").read_text())
+    cases = json.loads((case_file or ROOT / "tests/test_cases.json").read_text(encoding="utf-8-sig"))
     if case_ids:
         if set(case_ids) - {c["id"] for c in cases}:
             raise SystemExit("Case ID không có trong test set.")
@@ -142,7 +142,7 @@ def evaluate(provider, output, case_ids=None, pace_seconds=0, case_file=None):
               "real_model_attempts": sum(len(r["provider_calls"]) for r in results if not r["fault_injected"]) if provider == "gemini" else 0,
               "scoring": "Automatic 0/2 proxy checks; human 0/1/2 review remains required for model-quality claims.",
               "passed": sum(r["passed"] for r in results), "total": len(results), "cases": results}
-    (output / f"evaluation_{provider}.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+    (output / f"evaluation_{provider}.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     lines = [f"# Evaluation: {report['model_id']}", "", f"Prompt: `{PROMPT_VERSION}`. UTC: {report['timestamp_utc']}.", "",
              f"Kết quả: {report['passed']}/{report['total']} case đạt các kiểm tra tự động.", "",
              "Đây là kiểm tra workflow bằng rule/fixture khi provider=fake, không phải benchmark Gemini. Các case F dùng lỗi chèn chủ động, kể cả khi chọn Gemini.", "",
@@ -151,7 +151,7 @@ def evaluate(provider, output, case_ids=None, pace_seconds=0, case_file=None):
     for r in results:
         s = r["scores"]
         lines.append(f"| {r['id']} | {r['group']} | {r['actual_route']} | {s['intent']} | {s['extraction']} | {s['validation']} | {s['routing']} | {s['response']} | {'PASS' if r['passed'] else 'FAIL'} |")
-    (output / f"evaluation_{provider}.md").write_text("\n".join(lines) + "\n")
+    (output / f"evaluation_{provider}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{provider}: {report['passed']}/{report['total']} passed; {output / f'evaluation_{provider}.md'}")
     return report["passed"] == report["total"]
 

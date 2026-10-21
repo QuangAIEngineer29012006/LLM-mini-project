@@ -4,7 +4,7 @@ Base URL mặc định: `http://127.0.0.1:8000`. API nhận/trả JSON. Swagger 
 
 ## Phiên và quyền truy cập
 
-`POST /api/session` trả `{ "token": "...", "expires_at": 1790000000 }`. Đây là token ngẫu nhiên không chứa thông tin khách hàng; thời gian hết hạn là Unix timestamp. Gửi `Authorization: Bearer <token>` cho cart, order, chat. `DELETE /api/session` thu hồi phiên. Token chỉ lưu hash SHA-256 trong SQLite. Khởi động lại API giữ phiên; một phiên trình duyệt Streamlit mới chưa có chức năng đăng nhập lại token cũ.
+`POST /api/session` trả `{ "token": "...", "expires_at": 1790000000 }`. Đây là token ngẫu nhiên không chứa thông tin khách hàng; thời gian hết hạn là Unix timestamp. Gửi `Authorization: Bearer <token>` cho cart, order, chat. `DELETE /api/session` thu hồi phiên. Token chỉ lưu hash SHA-256 trong SQLite. React giữ token trong local storage và gửi token ở các request tiếp theo; API giữ phiên trong SQLite đến khi hết hạn hoặc thu hồi.
 
 Catalog/health là public. Không nhận `owner_id`, `role`, giá, tổng tiền, tồn kho hoặc trạng thái từ client. Các trường ngoài allowlist bị từ chối bằng 422. Khách hàng khác truy cập/sửa đơn trả 404, kể cả biết mã đơn và item ID. API không có endpoint quản trị hoặc xác nhận đơn cho khách hàng.
 
@@ -55,15 +55,15 @@ Response chat:
 {"reply":"Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ.","route":"ask_missing","missing_fields":["recipient_name","phone","address"],"order":null,"request_id":"...","intent":"create_order"}
 ```
 
-Route: `catalog_shown`, `catalog_empty`, `ask_missing`, `draft_created`, `order_updated`, `price_checked`, `stock_checked`, `out_of_stock`, `handoff`, `failed_validation`. Lỗi LLM trả HTTP 200 với route `failed_validation` và `error_type`; chưa ghi order. Lỗi API/business như không có quyền, trạng thái đơn khóa hoặc tồn kho khi sửa đơn trả HTTP tương ứng. Handoff chỉ là cờ review và audit, chưa có dịch vụ gửi thông báo cho nhân viên.
+Route: `catalog_shown`, `catalog_empty`, `ask_missing`, `draft_created`, `order_updated`, `price_checked`, `stock_checked`, `out_of_stock`, `handoff`, `failed_validation`. Lỗi LLM trả HTTP 200 với route `failed_validation` và `error_type`; chưa ghi order. Lỗi API/business như không có quyền, trạng thái đơn khóa hoặc tồn kho khi sửa đơn trả HTTP tương ứng. Handoff ghi nhận trạng thái cần hỗ trợ và audit của hội thoại.
 
 `browse_catalog` trả thêm `products` theo schema API catalog. Có thể xem toàn bộ nhóm hàng, tìm theo tên/alias, lọc màu/size, ngân sách và chỉ hàng còn tồn. Price bounds do LLM trích xuất phải có số tiền tương ứng trong message; backend áp dụng bộ lọc trên giá trong DB. Không cần nhập giao nhận để xem hàng. `check_price`/`check_stock` có thể trả nhiều biến thể của một sản phẩm, không bắt chọn SKU trước khi xem thông tin. Chỉ khi có yêu cầu mua rõ ràng mới vào nhánh tạo đơn, bắt buộc xác định duy nhất SKU và đủ giao nhận.
 
 Backend lưu ID/SKU đã hiển thị trong context của phiên, đọc lại DB ở lượt sau để xử lý `giá bao nhiêu`, `mẫu này`, hoặc `mẫu đầu tiên`. Không chọn đại một sản phẩm khi người dùng nói `lấy 2 cái` sau khi vừa xem nhiều sản phẩm. Xem catalog giữa luồng thu thập giao nhận không xóa đơn đang thu thập.
 
-Response có `interpretation_source`: `local_catalog` cho mẫu hỏi catalog/giá/tồn rõ nghĩa được xử lý bằng rule, `gemini` cho lượt gọi model thật, hoặc `fake` trong chế độ test offline. Route đọc catalog luôn lấy dữ liệu hiện tại từ SQLite. Bộ đếm Gemini hiện cấu hình 500 HTTP attempt/model/ngày Pacific cho Gemini 3.5 Flash-Lite theo hạn mức người dùng cung cấp; Gemini 3.6 Flash vẫn bị chặn nếu cấu hình vượt 20. Bộ đếm dùng chung các phiên và giữ qua restart, chỉ theo dõi từ lúc triển khai tính năng này. Mặc định không retry. Hết ngân sách local trả `failed_validation` với `error_type=llm_daily_limit`; câu hỏi catalog local và website vẫn dùng được.
+Response có `interpretation_source`: `local_catalog` cho mẫu hỏi catalog/giá/tồn rõ nghĩa được xử lý bằng rule, `gemini` cho lượt gọi model thật, hoặc `fake` trong chế độ test offline. Route đọc catalog luôn lấy dữ liệu hiện tại từ SQLite. Timeout, retry và ngân sách gọi model được cấu hình qua `.env`; bộ đếm được lưu trong SQLite và giữ qua các lần khởi động.
 
-## Lỗi và giới hạn
+## Phản hồi lỗi và cấu hình request
 
 ```json
 {"error":{"code":"validation","message":"Dữ liệu gửi lên chưa hợp lệ.","fields":{"quantity":"Giá trị không hợp lệ hoặc còn thiếu."}},"request_id":"..."}
@@ -71,4 +71,4 @@ Response có `interpretation_source`: `local_catalog` cho mẫu hỏi catalog/gi
 
 Mã thường gặp: 401 auth, 404 resource không có trong scope, 409 stock/state/idempotency, 413 body lớn hơn 16 KB, 422 validation, 429 rate limit, 503 DB tạm thời bận. Không phản hồi input/stack trace/provider body hoặc secret. `X-Request-ID` dùng đối chiếu audit; `Cache-Control: no-store` cho response.
 
-Mặc định: 120 request/phút/IP, 20 phiên mới/phút/IP, 10 chat/phút/phiên. 429 có `Retry-After: 60`. Rate limit dùng bộ nhớ một process; khi deploy nhiều worker cần thay bằng shared limiter. Bind localhost cho demo; khi public cần HTTPS và cấu hình reverse proxy phù hợp.
+Mặc định: 120 request/phút/IP, 20 phiên mới/phút/IP, 10 chat/phút/phiên. 429 có `Retry-After: 60`. Bản demo chạy localhost; các giá trị được cấu hình trong `.env`.
