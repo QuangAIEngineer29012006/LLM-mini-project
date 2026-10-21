@@ -1,0 +1,834 @@
+{
+  "timestamp_utc": "2026-10-21T03:12:21.197431+00:00",
+  "provider": "fake",
+  "model_id": "fake-rules-v1",
+  "prompt_version": "shop-assistant-v3",
+  "temperature": null,
+  "llm_max_retries": 0,
+  "llm_timeout_seconds": 12,
+  "real_model_attempts": 0,
+  "scoring": "Automatic 0/2 proxy checks; human 0/1/2 review remains required for model-quality claims.",
+  "passed": 9,
+  "total": 11,
+  "cases": [
+    {
+      "id": "L01",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "2; 4.2 create_order; 9.2 unmatched variant",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "product"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": "xanh",
+                  "size": "M"
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": "[PRESENT]"
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
+      "latency_ms": 31.0
+    },
+    {
+      "id": "L02",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": [
+        "ask_missing",
+        "handoff"
+      ],
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "2: vague reference with purchase/stock question",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "check_stock",
+          "route": "ask_missing",
+          "missing_fields": [
+            "product"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "check_stock",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": null
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "L03",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": false,
+      "scores": {
+        "intent": 0,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 0,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "handoff",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "2: unknown 500g item and partial phone",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "unknown_or_handoff",
+          "route": "handoff",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Chưa đủ căn cứ xử lý tự động. Vui lòng nêu sản phẩm và yêu cầu cụ thể hoặc nhờ nhân viên hỗ trợ."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "unknown_or_handoff",
+            "confidence": "low",
+            "items": [],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": true,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa đủ căn cứ xử lý tự động. Vui lòng nêu sản phẩm và yêu cầu cụ thể hoặc nhờ nhân viên hỗ trợ.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "L04",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "4.2 check_stock without product reference",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "check_stock",
+          "route": "ask_missing",
+          "missing_fields": [
+            "product"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "check_stock",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "L"
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "L05",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": [
+        "ask_missing",
+        "catalog_empty"
+      ],
+      "actual_route": "catalog_empty",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "4.2 check_price for product absent from seed",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "check_price",
+          "route": "catalog_empty",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Hiện cửa hàng chưa có sản phẩm khớp yêu cầu trong catalog. Bạn có thể đổi từ khóa, màu/size hoặc mức giá để mình tìm lại."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "check_price",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "Hộp 500g giá bao nhiêu?",
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Hiện cửa hàng chưa có sản phẩm khớp yêu cầu trong catalog. Bạn có thể đổi từ khóa, màu/size hoặc mức giá để mình tìm lại.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "L06",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": [
+        "handoff",
+        "ask_missing"
+      ],
+      "actual_route": "handoff",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "4.2 unknown_or_handoff",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "unknown_or_handoff",
+          "route": "handoff",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Chưa đủ căn cứ xử lý tự động. Vui lòng nêu sản phẩm và yêu cầu cụ thể hoặc nhờ nhân viên hỗ trợ."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "unknown_or_handoff",
+            "confidence": "low",
+            "items": [],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": true,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa đủ căn cứ xử lý tự động. Vui lòng nêu sản phẩm và yêu cầu cụ thể hoặc nhờ nhân viên hỗ trợ.",
+      "latency_ms": 31.0
+    },
+    {
+      "id": "L07",
+      "group": "literal_spec",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "2; 4.2 update_order without a target",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "update_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "order_reference"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "update_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "U01",
+      "group": "update",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "order_updated",
+      "actual_route": "order_updated",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "spec": "US-03: update uniquely identified draft in session",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "update_order",
+          "route": "order_updated",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã cập nhật đơn nháp và kiểm tra lại tồn kho."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "update_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã cập nhật đơn nháp và kiểm tra lại tồn kho.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "U02",
+      "group": "update",
+      "fault_injected": false,
+      "passed": false,
+      "scores": {
+        "intent": 2,
+        "extraction": 0,
+        "validation": 0,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "order_updated",
+      "actual_route": "order_updated",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "TSH-BLK-L",
+          1
+        ]
+      ],
+      "spec": "US-03: change variant with explicit order ID",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "TSH-BLK-L",
+          1
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "update_order",
+          "route": "order_updated",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã cập nhật đơn nháp và kiểm tra lại tồn kho."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "update_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "L"
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": "DH000001",
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã cập nhật đơn nháp và kiểm tra lại tồn kho.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "U03",
+      "group": "update",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 2,
+      "items": [],
+      "spec": "US-03: multiple drafts make latest-order reference ambiguous",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "CAP-BLK-F",
+          1
+        ],
+        [
+          "TSH-BLK-M",
+          1
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "update_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "order_reference"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "update_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "F04",
+      "group": "format_api",
+      "fault_injected": true,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "failed_validation",
+      "actual_route": "failed_validation",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": "11.1: mock rate limit and safe failure state",
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": "llm_rate_limit",
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": null,
+          "route": "failed_validation",
+          "missing_fields": [],
+          "error_type": "llm_rate_limit",
+          "interpretation_source": "fake",
+          "reply": "Dịch vụ AI đang giới hạn lượt yêu cầu. Vui lòng đợi khoảng một phút rồi gửi lại. Đơn hàng chưa thay đổi."
+        }
+      ],
+      "provider_calls": [
+        {
+          "error_type": "llm_rate_limit"
+        }
+      ],
+      "reply": "Dịch vụ AI đang giới hạn lượt yêu cầu. Vui lòng đợi khoảng một phút rồi gửi lại. Đơn hàng chưa thay đổi.",
+      "latency_ms": 15.0
+    }
+  ]
+}

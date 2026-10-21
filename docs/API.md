@@ -1,0 +1,74 @@
+# Hợp đồng API
+
+Base URL mặc định: `http://127.0.0.1:8000`. API nhận/trả JSON. Swagger tại `/docs` liệt kê schema request đầy đủ.
+
+## Phiên và quyền truy cập
+
+`POST /api/session` trả `{ "token": "...", "expires_at": 1790000000 }`. Đây là token ngẫu nhiên không chứa thông tin khách hàng; thời gian hết hạn là Unix timestamp. Gửi `Authorization: Bearer <token>` cho cart, order, chat. `DELETE /api/session` thu hồi phiên. Token chỉ lưu hash SHA-256 trong SQLite. Khởi động lại API giữ phiên; một phiên trình duyệt Streamlit mới chưa có chức năng đăng nhập lại token cũ.
+
+Catalog/health là public. Không nhận `owner_id`, `role`, giá, tổng tiền, tồn kho hoặc trạng thái từ client. Các trường ngoài allowlist bị từ chối bằng 422. Khách hàng khác truy cập/sửa đơn trả 404, kể cả biết mã đơn và item ID. API không có endpoint quản trị hoặc xác nhận đơn cho khách hàng.
+
+## Endpoint
+
+| Method | Path | Body | Quyền / kết quả |
+|---|---|---|---|
+| GET | `/api/health` | | Public; trạng thái DB và provider/model đang chọn, không thử gọi Google |
+| POST | `/api/session` | | Public; tạo token (201), rate limit theo IP |
+| DELETE | `/api/session` | | Phiên hiện tại; thu hồi token |
+| GET | `/api/products` | | Public; `{products: [...]}` |
+| GET | `/api/products/{product_id}` | | Public; một sản phẩm đang bán và các biến thể |
+| GET | `/api/cart` | | Chỉ giỏ hiện tại của phiên |
+| POST | `/api/cart/items` | `{sku, quantity}` | Gộp cùng SKU, kiểm tra tổng số lượng/tồn kho |
+| PATCH | `/api/cart/items/{item_id}` | `{quantity}` | Đặt số lượng mới trên giỏ của phiên |
+| DELETE | `/api/cart/items/{item_id}` | | Xóa dòng khỏi giỏ của phiên |
+| POST | `/api/orders` | `{shipping: {recipient_name, phone, address}}` | Gửi giỏ thành đơn chờ xác nhận, kiểm tra lại giá/tồn, làm trống giỏ hiện tại |
+| GET | `/api/orders` | | Tối đa 100 đơn của phiên, không gồm giỏ chưa gửi |
+| GET | `/api/orders/{order_id}` | | Chỉ đơn thuộc phiên, mã `DH000001` |
+| PATCH | `/api/orders/{order_id}/items/{item_id}` | `{quantity}` và/hoặc `{sku}` | Chỉ cart/pending_confirmation; đổi SKU phải cùng sản phẩm |
+| POST | `/api/chat` | `{message}` | Tin nhắn tối đa 500 ký tự; trích xuất + validation + workflow |
+
+Số lượng là integer 1-99, không chấp nhận bool, chuỗi số hoặc số thập phân. Giao nhận: tên 2-100 ký tự, điện thoại Việt Nam dạng `0xxxxxxxxx`/`+84xxxxxxxxx` sau chuẩn hóa, địa chỉ 10-200 ký tự. Validation này chỉ kiểm tra hình thức, chưa xác minh số điện thoại hoặc địa chỉ thật.
+
+`item_id` là chuỗi ID dòng từ DB, không phải SKU. Đổi biến thể có thể gộp với dòng SKU đã có; dùng response mới sau mỗi lần sửa vì item ID có thể thay đổi. Giá/tổng tiền được tính tại server. Đơn nháp chưa giữ hàng và chưa trừ tồn kho.
+
+Ví dụ sản phẩm trả về:
+
+```json
+{"product_id":1,"name":"Áo thun basic cotton","category":"Áo","description":"...","price_from":150000,"price_to":150000,"in_stock":true,"variants":[{"sku":"TSH-BLK-M","label":"Đen / M","unit_price":150000,"stock":25,"color":"Đen","size":"M"}]}
+```
+
+Ví dụ đơn trả về:
+
+```json
+{"order_id":"DH000001","status":"pending_confirmation","editable":true,"shipping":{"recipient_name":"Khách Demo","phone":"0912345678","address":"12 Đường Mẫu, Quận 7"},"items":[{"item_id":"1","sku":"TSH-BLK-M","name":"Áo thun basic cotton","variant_label":"Đen / M","quantity":2,"unit_price":150000,"line_total":300000,"available_variants":[{"sku":"TSH-BLK-M","label":"Đen / M"}]}],"total":300000,"source":"chat"}
+```
+
+## Chat và chống gửi trùng
+
+`POST /api/orders` và `POST /api/chat` hỗ trợ header `Idempotency-Key` dài 8-100 ký tự, gồm chữ, số và `_-:.`. Khóa có scope theo chủ phiên và endpoint. Cùng key/cùng body trả response đã lưu; cùng key/khác body trả 409. Dùng key mới cho thao tác mới. Checkout hash thông tin giao nhận trong body, không hash giỏ có thể đã được làm trống sau request thành công.
+
+Frontend tạo key cho checkout và chat. Nếu chat lỗi mạng, client giữ key cho lần gửi lại cùng message. Lỗi JSON/LLM không được cache receipt để người dùng có thể thử lại. Với hai tin nhắn chat khác nhau xử lý đồng thời, backend từ chối tin tính trên context cũ bằng 409 `conversation_busy`; người dùng gửi lại sau khi lượt trước hoàn tất.
+
+Response chat:
+
+```json
+{"reply":"Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ.","route":"ask_missing","missing_fields":["recipient_name","phone","address"],"order":null,"request_id":"...","intent":"create_order"}
+```
+
+Route: `catalog_shown`, `catalog_empty`, `ask_missing`, `draft_created`, `order_updated`, `price_checked`, `stock_checked`, `out_of_stock`, `handoff`, `failed_validation`. Lỗi LLM trả HTTP 200 với route `failed_validation` và `error_type`; chưa ghi order. Lỗi API/business như không có quyền, trạng thái đơn khóa hoặc tồn kho khi sửa đơn trả HTTP tương ứng. Handoff chỉ là cờ review và audit, chưa có dịch vụ gửi thông báo cho nhân viên.
+
+`browse_catalog` trả thêm `products` theo schema API catalog. Có thể xem toàn bộ nhóm hàng, tìm theo tên/alias, lọc màu/size, ngân sách và chỉ hàng còn tồn. Price bounds do LLM trích xuất phải có số tiền tương ứng trong message; backend áp dụng bộ lọc trên giá trong DB. Không cần nhập giao nhận để xem hàng. `check_price`/`check_stock` có thể trả nhiều biến thể của một sản phẩm, không bắt chọn SKU trước khi xem thông tin. Chỉ khi có yêu cầu mua rõ ràng mới vào nhánh tạo đơn, bắt buộc xác định duy nhất SKU và đủ giao nhận.
+
+Backend lưu ID/SKU đã hiển thị trong context của phiên, đọc lại DB ở lượt sau để xử lý `giá bao nhiêu`, `mẫu này`, hoặc `mẫu đầu tiên`. Không chọn đại một sản phẩm khi người dùng nói `lấy 2 cái` sau khi vừa xem nhiều sản phẩm. Xem catalog giữa luồng thu thập giao nhận không xóa đơn đang thu thập.
+
+Response có `interpretation_source`: `local_catalog` cho mẫu hỏi catalog/giá/tồn rõ nghĩa được xử lý bằng rule, `gemini` cho lượt gọi model thật, hoặc `fake` trong chế độ test offline. Route đọc catalog luôn lấy dữ liệu hiện tại từ SQLite. Bộ đếm Gemini hiện cấu hình 500 HTTP attempt/model/ngày Pacific cho Gemini 3.5 Flash-Lite theo hạn mức người dùng cung cấp; Gemini 3.6 Flash vẫn bị chặn nếu cấu hình vượt 20. Bộ đếm dùng chung các phiên và giữ qua restart, chỉ theo dõi từ lúc triển khai tính năng này. Mặc định không retry. Hết ngân sách local trả `failed_validation` với `error_type=llm_daily_limit`; câu hỏi catalog local và website vẫn dùng được.
+
+## Lỗi và giới hạn
+
+```json
+{"error":{"code":"validation","message":"Dữ liệu gửi lên chưa hợp lệ.","fields":{"quantity":"Giá trị không hợp lệ hoặc còn thiếu."}},"request_id":"..."}
+```
+
+Mã thường gặp: 401 auth, 404 resource không có trong scope, 409 stock/state/idempotency, 413 body lớn hơn 16 KB, 422 validation, 429 rate limit, 503 DB tạm thời bận. Không phản hồi input/stack trace/provider body hoặc secret. `X-Request-ID` dùng đối chiếu audit; `Cache-Control: no-store` cho response.
+
+Mặc định: 120 request/phút/IP, 20 phiên mới/phút/IP, 10 chat/phút/phiên. 429 có `Retry-After: 60`. Rate limit dùng bộ nhớ một process; khi deploy nhiều worker cần thay bằng shared limiter. Bind localhost cho demo; khi public cần HTTPS và cấu hình reverse proxy phù hợp.

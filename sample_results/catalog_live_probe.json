@@ -1,0 +1,215 @@
+{
+  "calls": [
+    {
+      "http_status": 200,
+      "model_version": "gemini-3.6-flash",
+      "seconds": 4.31,
+      "finish_reason": "STOP",
+      "extraction": "{\n  \"intent\": \"browse_catalog\",\n  \"confidence\": \"high\",\n  \"items\": [],\n  \"customer\": {\n    \"name\": null,\n    \"phone\": null,\n    \"address\": null\n  },\n  \"order_reference\": null,\n  \"missing_information\": [],\n  \"requires_human_review\": false,\n  \"evidence\": [\n    \"tôi muốn tham khảo sản phẩm\",\n    \"cửa hàng bạn bán những gì\"\n  ],\n  \"catalog_filters\": {\n    \"category\": null,\n    \"min_price\": null \n  }\n}"
+    }
+  ],
+  "result": {
+    "reply": "Mình tìm được các sản phẩm sau trong cửa hàng:\n\n1. Áo thun basic cotton (Áo)\nÁo thun cotton 100%, form regular.\n- Đen / L (TSH-BLK-L): giá 150,000 VND; còn 12 sản phẩm.\n- Đen / M (TSH-BLK-M): giá 150,000 VND; còn 25 sản phẩm.\n- Trắng / L (TSH-WHT-L): giá 150,000 VND; còn 8 sản phẩm.\n- Trắng / M (TSH-WHT-M): giá 150,000 VND; hết hàng (còn 0 sản phẩm).\n\n2. Áo hoodie nỉ (Áo)\nHoodie nỉ bông dày, có mũ.\n- Đen / L (HOD-BLK-L): giá 390,000 VND; hết hàng (còn 0 sản phẩm).\n- Xám / L (HOD-GRY-L): giá 380,000 VND; còn 3 sản phẩm.\n- Xám / M (HOD-GRY-M): giá 380,000 VND; còn 5 sản phẩm.\n\n3. Giày sneaker trắng (Giày)\nSneaker da tổng hợp, đế cao su.\n- Trắng / 40 (SNK-WHT-40): giá 750,000 VND; còn 6 sản phẩm.\n- Trắng / 41 (SNK-WHT-41): giá 750,000 VND; còn 2 sản phẩm.\n- Trắng / 42 (SNK-WHT-42): giá 750,000 VND; hết hàng (còn 0 sản phẩm).\n\n4. Dép quai ngang (Giày)\nDép quai ngang đế êm.\n- Đen / 40 (SLD-BLK-40): giá 120,000 VND; còn 30 sản phẩm.\n- Đen / 42 (SLD-BLK-42): giá 120,000 VND; còn 18 sản phẩm.\n\n5. Nón lưỡi trai (Phụ kiện)\nNón lưỡi trai cotton, khóa điều chỉnh.\n- Đen / Free (CAP-BLK-F): giá 90,000 VND; còn 15 sản phẩm.\n- Xanh navy / Free (CAP-NVY-F): giá 90,000 VND; còn 20 sản phẩm.\n\n6. Balo laptop (Phụ kiện)\nBalo chống nước, ngăn laptop 15 inch.\n- Đen / 15 inch (BAG-BLK-15): giá 520,000 VND; hết hàng (còn 0 sản phẩm).\n- Xám / 15 inch (BAG-GRY-15): giá 520,000 VND; còn 4 sản phẩm.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+    "route": "catalog_shown",
+    "missing_fields": [],
+    "order": null,
+    "products": [
+      {
+        "product_id": 1,
+        "name": "Áo thun basic cotton",
+        "category": "Áo",
+        "description": "Áo thun cotton 100%, form regular.",
+        "in_stock": true,
+        "price_from": 150000,
+        "price_to": 150000,
+        "variants": [
+          {
+            "sku": "TSH-BLK-L",
+            "label": "Đen / L",
+            "unit_price": 150000,
+            "stock": 12,
+            "color": "Đen",
+            "size": "L"
+          },
+          {
+            "sku": "TSH-BLK-M",
+            "label": "Đen / M",
+            "unit_price": 150000,
+            "stock": 25,
+            "color": "Đen",
+            "size": "M"
+          },
+          {
+            "sku": "TSH-WHT-L",
+            "label": "Trắng / L",
+            "unit_price": 150000,
+            "stock": 8,
+            "color": "Trắng",
+            "size": "L"
+          },
+          {
+            "sku": "TSH-WHT-M",
+            "label": "Trắng / M",
+            "unit_price": 150000,
+            "stock": 0,
+            "color": "Trắng",
+            "size": "M"
+          }
+        ]
+      },
+      {
+        "product_id": 2,
+        "name": "Áo hoodie nỉ",
+        "category": "Áo",
+        "description": "Hoodie nỉ bông dày, có mũ.",
+        "in_stock": true,
+        "price_from": 380000,
+        "price_to": 390000,
+        "variants": [
+          {
+            "sku": "HOD-BLK-L",
+            "label": "Đen / L",
+            "unit_price": 390000,
+            "stock": 0,
+            "color": "Đen",
+            "size": "L"
+          },
+          {
+            "sku": "HOD-GRY-L",
+            "label": "Xám / L",
+            "unit_price": 380000,
+            "stock": 3,
+            "color": "Xám",
+            "size": "L"
+          },
+          {
+            "sku": "HOD-GRY-M",
+            "label": "Xám / M",
+            "unit_price": 380000,
+            "stock": 5,
+            "color": "Xám",
+            "size": "M"
+          }
+        ]
+      },
+      {
+        "product_id": 3,
+        "name": "Giày sneaker trắng",
+        "category": "Giày",
+        "description": "Sneaker da tổng hợp, đế cao su.",
+        "in_stock": true,
+        "price_from": 750000,
+        "price_to": 750000,
+        "variants": [
+          {
+            "sku": "SNK-WHT-40",
+            "label": "Trắng / 40",
+            "unit_price": 750000,
+            "stock": 6,
+            "color": "Trắng",
+            "size": "40"
+          },
+          {
+            "sku": "SNK-WHT-41",
+            "label": "Trắng / 41",
+            "unit_price": 750000,
+            "stock": 2,
+            "color": "Trắng",
+            "size": "41"
+          },
+          {
+            "sku": "SNK-WHT-42",
+            "label": "Trắng / 42",
+            "unit_price": 750000,
+            "stock": 0,
+            "color": "Trắng",
+            "size": "42"
+          }
+        ]
+      },
+      {
+        "product_id": 4,
+        "name": "Dép quai ngang",
+        "category": "Giày",
+        "description": "Dép quai ngang đế êm.",
+        "in_stock": true,
+        "price_from": 120000,
+        "price_to": 120000,
+        "variants": [
+          {
+            "sku": "SLD-BLK-40",
+            "label": "Đen / 40",
+            "unit_price": 120000,
+            "stock": 30,
+            "color": "Đen",
+            "size": "40"
+          },
+          {
+            "sku": "SLD-BLK-42",
+            "label": "Đen / 42",
+            "unit_price": 120000,
+            "stock": 18,
+            "color": "Đen",
+            "size": "42"
+          }
+        ]
+      },
+      {
+        "product_id": 5,
+        "name": "Nón lưỡi trai",
+        "category": "Phụ kiện",
+        "description": "Nón lưỡi trai cotton, khóa điều chỉnh.",
+        "in_stock": true,
+        "price_from": 90000,
+        "price_to": 90000,
+        "variants": [
+          {
+            "sku": "CAP-BLK-F",
+            "label": "Đen / Free",
+            "unit_price": 90000,
+            "stock": 15,
+            "color": "Đen",
+            "size": "Free"
+          },
+          {
+            "sku": "CAP-NVY-F",
+            "label": "Xanh navy / Free",
+            "unit_price": 90000,
+            "stock": 20,
+            "color": "Xanh navy",
+            "size": "Free"
+          }
+        ]
+      },
+      {
+        "product_id": 6,
+        "name": "Balo laptop",
+        "category": "Phụ kiện",
+        "description": "Balo chống nước, ngăn laptop 15 inch.",
+        "in_stock": true,
+        "price_from": 520000,
+        "price_to": 520000,
+        "variants": [
+          {
+            "sku": "BAG-BLK-15",
+            "label": "Đen / 15 inch",
+            "unit_price": 520000,
+            "stock": 0,
+            "color": "Đen",
+            "size": "15 inch"
+          },
+          {
+            "sku": "BAG-GRY-15",
+            "label": "Xám / 15 inch",
+            "unit_price": 520000,
+            "stock": 4,
+            "color": "Xám",
+            "size": "15 inch"
+          }
+        ]
+      }
+    ],
+    "request_id": "af5b1da9b24e44ac84e24a4503ecb5b0",
+    "intent": "browse_catalog"
+  }
+}

@@ -1,0 +1,585 @@
+{
+  "review_type": "ai_assisted_not_human",
+  "cases": [
+    {
+      "id": "H01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "0a6fff9e1ddc9c1814960ab5168b66899bb18e0286def5e8097883609d6e3372",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Item áo đen M số lượng 2 đúng expected. Text reply chỉ xác nhận chung; cần đọc thẻ đơn trên UI mới để chốt điểm response.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route draft_created phù hợp expected trong case; Item áo đen M số lượng 2 đúng expected. Text reply chỉ xác nhận chung; cần đọc thẻ đơn trên UI mới để chốt điểm response.",
+        "response": "Item áo đen M số lượng 2 đúng expected. Text reply chỉ xác nhận chung; cần đọc thẻ đơn trên UI mới để chốt điểm response."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "H02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "aa693a6575614a0a08ed2fcf793e5ffb5d4426946036940dcb99ff3194b49a8c",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Nón đen số lượng 1 đúng expected; text reply chưa nhắc lại item/số lượng.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route draft_created phù hợp expected trong case; Nón đen số lượng 1 đúng expected; text reply chưa nhắc lại item/số lượng.",
+        "response": "Nón đen số lượng 1 đúng expected; text reply chưa nhắc lại item/số lượng."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "H03",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "23599d8db5cc93b63b86fb5f5a06370dc56b7e338c0fc40ad68d977300b63da1",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Hai item đúng SKU/số lượng. Cần kiểm tra thẻ đơn hiển thị cả hai item và tổng tiền.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route draft_created phù hợp expected trong case; Hai item đúng SKU/số lượng. Cần kiểm tra thẻ đơn hiển thị cả hai item và tổng tiền.",
+        "response": "Hai item đúng SKU/số lượng. Cần kiểm tra thẻ đơn hiển thị cả hai item và tổng tiền."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "M01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "3545fcbf9d15c93d3ebcb9ca8433884252e1d992c036a606c69a016097b0119f",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Hỏi đúng ba trường giao nhận thiếu, chưa tạo đơn.",
+        "extraction": "Hỏi đúng ba trường giao nhận thiếu, chưa tạo đơn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Hỏi đúng ba trường giao nhận thiếu, chưa tạo đơn.",
+        "response": "Hỏi đúng ba trường giao nhận thiếu, chưa tạo đơn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "M02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "480650e18b729340b85a3c16b08f390239ee8645b96d2122063e4c2502807b31",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Không tự chọn một trong bốn biến thể; đưa lựa chọn và hỏi màu/size.",
+        "extraction": "Không tự chọn một trong bốn biến thể; đưa lựa chọn và hỏi màu/size.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Không tự chọn một trong bốn biến thể; đưa lựa chọn và hỏi màu/size.",
+        "response": "Không tự chọn một trong bốn biến thể; đưa lựa chọn và hỏi màu/size."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "M03",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "ddd77457267e44f7fe2ef19b78f0edf4695c23d7ce0484251b396fe6fadcd9fa",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Không đoán sản phẩm từ “mẫu kia”; hỏi tên hoặc SKU.",
+        "extraction": "Không đoán sản phẩm từ “mẫu kia”; hỏi tên hoặc SKU.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Không đoán sản phẩm từ “mẫu kia”; hỏi tên hoặc SKU.",
+        "response": "Không đoán sản phẩm từ “mẫu kia”; hỏi tên hoặc SKU."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "M04",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "ee6d9de45a97b3b5658a74e7fcf3796e9a8c4756f9eec9d1b27ba58d95631231",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Đơn được tạo sau tin bổ sung; quantity từ lượt đầu được giữ. PII trong extraction đã che.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route draft_created phù hợp expected trong case; Đơn được tạo sau tin bổ sung; quantity từ lượt đầu được giữ. PII trong extraction đã che.",
+        "response": "Đơn được tạo sau tin bổ sung; quantity từ lượt đầu được giữ. PII trong extraction đã che."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "M05",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "7b4347a00f2f1138a377fa03fabee3326265303de0d183e0290822b5ef8164d8",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 1,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Lượt đầu missing_information của model chưa liệt kê variant dù thiếu màu/size; backend vẫn hỏi đúng. Các lượt sau giữ item và tạo đúng đơn.",
+        "extraction": "Lượt đầu missing_information của model chưa liệt kê variant dù thiếu màu/size; backend vẫn hỏi đúng. Các lượt sau giữ item và tạo đúng đơn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route draft_created phù hợp expected trong case; Lượt đầu missing_information của model chưa liệt kê variant dù thiếu màu/size; backend vẫn hỏi đúng. Các lượt sau giữ item và tạo đúng đơn.",
+        "response": "Lượt đầu missing_information của model chưa liệt kê variant dù thiếu màu/size; backend vẫn hỏi đúng. Các lượt sau giữ item và tạo đúng đơn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "I01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "2cdf2b50d1593408ef65ba9ff31e5e1f90a0cf13de958b1e41f0b32f04390076",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Báo SKU trắng M còn 0, không tạo đơn; có bước chọn lại biến thể/số lượng.",
+        "extraction": "Báo SKU trắng M còn 0, không tạo đơn; có bước chọn lại biến thể/số lượng.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route out_of_stock phù hợp expected trong case; Báo SKU trắng M còn 0, không tạo đơn; có bước chọn lại biến thể/số lượng.",
+        "response": "Báo SKU trắng M còn 0, không tạo đơn; có bước chọn lại biến thể/số lượng."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "I02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "80574a99e45fea2eb6771e8c360cc54bab80e5c87b59b0e0661b4b1204618738",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Phản hồi nêu tồn 2 và yêu cầu 3, không tạo đơn vượt tồn.",
+        "extraction": "Phản hồi nêu tồn 2 và yêu cầu 3, không tạo đơn vượt tồn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route out_of_stock phù hợp expected trong case; Phản hồi nêu tồn 2 và yêu cầu 3, không tạo đơn vượt tồn.",
+        "response": "Phản hồi nêu tồn 2 và yêu cầu 3, không tạo đơn vượt tồn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "I03",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "a61885a2272c14f3a5e7dc33df53e2fb780dd9f1061fd969717536cd2fc2e5a7",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Không tạo SKU máy bay đồ chơi; yêu cầu sản phẩm/SKU trong catalog.",
+        "extraction": "Không tạo SKU máy bay đồ chơi; yêu cầu sản phẩm/SKU trong catalog.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Không tạo SKU máy bay đồ chơi; yêu cầu sản phẩm/SKU trong catalog.",
+        "response": "Không tạo SKU máy bay đồ chơi; yêu cầu sản phẩm/SKU trong catalog."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "F01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "895483b711114370907af12e37749dbd1a36ac477ce5fba9df93371107d0c1d5",
+      "suggested_scores": {
+        "intent": null,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Lỗi chèn làm mất output model; không gán điểm intent model từ một expected null.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route failed_validation phù hợp expected trong case; Invalid JSON được chèn. Không có extraction model hợp lệ để chấm; workflow trả lỗi an toàn.",
+        "response": "Invalid JSON được chèn. Không có extraction model hợp lệ để chấm; workflow trả lỗi an toàn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "F02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "51999edc8dc837e161262a0f25525c6389cec513bec5a5cab64d5bf5e41c1e2c",
+      "suggested_scores": {
+        "intent": null,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Lỗi chèn làm mất output model; không gán điểm intent model từ một expected null.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route failed_validation phù hợp expected trong case; Timeout được chèn, không phải timeout Google thật; workflow báo chậm và chưa đổi đơn.",
+        "response": "Timeout được chèn, không phải timeout Google thật; workflow báo chậm và chưa đổi đơn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "F03",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "6b8b401725dce72b13c1a18bb15dd5e942988c71aae5a89d5e4ed0fae0710709",
+      "suggested_scores": {
+        "intent": null,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Lỗi chèn làm mất output model; không gán điểm intent model từ một expected null.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route failed_validation phù hợp expected trong case; Response rỗng được chèn; validation chặn và phản hồi không báo thành công giả.",
+        "response": "Response rỗng được chèn; validation chặn và phản hồi không báo thành công giả."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "S01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "2130831b6afcfa67a223391f86bfe74828de7511b0034628f20779da9a17d119",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Policy chặn trước LLM; handoff và không thay đổi đơn. Không coi đây là model chống injection.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route handoff phù hợp expected trong case; Policy chặn trước LLM; handoff và không thay đổi đơn. Không coi đây là model chống injection.",
+        "response": "Policy chặn trước LLM; handoff và không thay đổi đơn. Không coi đây là model chống injection."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "S02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "4b5b0edc37736e9956b77f0f3457ae67189ee8db8856b9d200f3fca47c45f02a",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Trích quantity 2 nhưng chưa xác định đơn; hỏi mã đơn, không sửa tùy ý.",
+        "extraction": "Trích quantity 2 nhưng chưa xác định đơn; hỏi mã đơn, không sửa tùy ý.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Trích quantity 2 nhưng chưa xác định đơn; hỏi mã đơn, không sửa tùy ý.",
+        "response": "Trích quantity 2 nhưng chưa xác định đơn; hỏi mã đơn, không sửa tùy ý."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "Q01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "b695a564ecb9895f3f191d95dc1eff421bb8d9065cdae1c46eaad1bccf351906",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Reply nêu đúng 150,000 VND theo dữ liệu case; SKU/biến thể rõ.",
+        "extraction": "Reply nêu đúng 150,000 VND theo dữ liệu case; SKU/biến thể rõ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route price_checked phù hợp expected trong case; Reply nêu đúng 150,000 VND theo dữ liệu case; SKU/biến thể rõ.",
+        "response": "Reply nêu đúng 150,000 VND theo dữ liệu case; SKU/biến thể rõ."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "Q02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "d88f68eb139a3ada6e9879d302ec01bbf70e7961211a79a2a6669f13e56b21a1",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Reply nêu hết hàng/còn 0 và SKU đúng; không suy đoán tồn.",
+        "extraction": "Reply nêu hết hàng/còn 0 và SKU đúng; không suy đoán tồn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route stock_checked phù hợp expected trong case; Reply nêu hết hàng/còn 0 và SKU đúng; không suy đoán tồn.",
+        "response": "Reply nêu hết hàng/còn 0 và SKU đúng; không suy đoán tồn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "eecea0d8c30ef1359b7c37c7e8c061c21b007c053f20d2c87c2e582022e18ab2",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Màu xanh không có trong seed. Chặn đúng, nhưng “bổ sung màu/size” có thể khó hiểu vì khách đã cung cấp; nên nói rõ chọn biến thể khác.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Màu xanh không có trong seed. Chặn đúng, nhưng “bổ sung màu/size” có thể khó hiểu vì khách đã cung cấp; nên nói rõ chọn biến thể khác.",
+        "response": "Màu xanh không có trong seed. Chặn đúng, nhưng “bổ sung màu/size” có thể khó hiểu vì khách đã cung cấp; nên nói rõ chọn biến thể khác."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "88c178957370a1dc0dad8abed8cdab0f1fe2068e5c55ff2c39ae45ac3c1032c9",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Không biết “em này” là sản phẩm nào; hỏi sản phẩm/SKU thay vì đoán.",
+        "extraction": "Không biết “em này” là sản phẩm nào; hỏi sản phẩm/SKU thay vì đoán.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Không biết “em này” là sản phẩm nào; hỏi sản phẩm/SKU thay vì đoán.",
+        "response": "Không biết “em này” là sản phẩm nào; hỏi sản phẩm/SKU thay vì đoán."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L03",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "16e22a7b3829073f404fb2e037c75bca8b962ae8a9567ba11d1a49bcfada3a55",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Không map được hộp 500g, chưa tạo đơn. Phone đã che nên không xác nhận được cách xử lý “09xx...” từ artifact.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Không map được hộp 500g, chưa tạo đơn. Phone đã che nên không xác nhận được cách xử lý “09xx...” từ artifact.",
+        "response": "Không map được hộp 500g, chưa tạo đơn. Phone đã che nên không xác nhận được cách xử lý “09xx...” từ artifact."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L04",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "11acd3a77316be18332ace9a21a0437e81f9a9411ebd69190f33bee6fd0cb028",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Không có tên sản phẩm, giữ màu/size và hỏi sản phẩm/SKU.",
+        "extraction": "Không có tên sản phẩm, giữ màu/size và hỏi sản phẩm/SKU.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Không có tên sản phẩm, giữ màu/size và hỏi sản phẩm/SKU.",
+        "response": "Không có tên sản phẩm, giữ màu/size và hỏi sản phẩm/SKU."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L05",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "f68549aaf09f7736e76302d33ab21727e5703b513d7bc4b1530aba0992c17be8",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Hỏi giá sản phẩm không có trong catalog; trả không tìm thấy thay vì bịa giá.",
+        "extraction": "Hỏi giá sản phẩm không có trong catalog; trả không tìm thấy thay vì bịa giá.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route catalog_empty phù hợp expected trong case; Hỏi giá sản phẩm không có trong catalog; trả không tìm thấy thay vì bịa giá.",
+        "response": "Hỏi giá sản phẩm không có trong catalog; trả không tìm thấy thay vì bịa giá."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L06",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "ea95a1465fd2a196abc207a056120b3b5b7960307b0c9dcced1b8afe87025722",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. unknown_or_handoff và human review đúng; không biến yêu cầu hỗ trợ gấp thành sửa đơn.",
+        "extraction": "unknown_or_handoff và human review đúng; không biến yêu cầu hỗ trợ gấp thành sửa đơn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route handoff phù hợp expected trong case; unknown_or_handoff và human review đúng; không biến yêu cầu hỗ trợ gấp thành sửa đơn.",
+        "response": "unknown_or_handoff và human review đúng; không biến yêu cầu hỗ trợ gấp thành sửa đơn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "L07",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "0c172f27e95159bf5c03da93e6ec020b60a0b96eba828901b81c6f2bac2a4cbf",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Quantity 2 được trích, nhưng cần mã đơn; route an toàn.",
+        "extraction": "Quantity 2 được trích, nhưng cần mã đơn; route an toàn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Quantity 2 được trích, nhưng cần mã đơn; route an toàn.",
+        "response": "Quantity 2 được trích, nhưng cần mã đơn; route an toàn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "U01",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "c785b663f75d73c2513ba94c7dce874a4a4c184e53eac7a04c7d1174e194c6e1",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Đơn duy nhất được đổi thành quantity 2, total 300000 theo expected; text reply chưa tóm tắt thay đổi.",
+        "extraction": "Đơn duy nhất được đổi thành quantity 2, total 300000 theo expected; text reply chưa tóm tắt thay đổi.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route order_updated phù hợp expected trong case; Đơn duy nhất được đổi thành quantity 2, total 300000 theo expected; text reply chưa tóm tắt thay đổi.",
+        "response": "Đơn duy nhất được đổi thành quantity 2, total 300000 theo expected; text reply chưa tóm tắt thay đổi."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "U02",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "f6daa70bb93832742653d7fa3ae3fa7f51bc81359099b9c04b9b7b2e323b80b5",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 1
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Mã đơn rõ, đổi size L và quantity 2 đúng expected; text reply chung cần đối chiếu thẻ UI.",
+        "extraction": "Mã đơn rõ, đổi size L và quantity 2 đúng expected; text reply chung cần đối chiếu thẻ UI.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route order_updated phù hợp expected trong case; Mã đơn rõ, đổi size L và quantity 2 đúng expected; text reply chung cần đối chiếu thẻ UI.",
+        "response": "Mã đơn rõ, đổi size L và quantity 2 đúng expected; text reply chung cần đối chiếu thẻ UI."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "U03",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "6948b63553bdcc37b3dfa86a723d30bcc3bafac1f8a14882ad45c5aa937c3c57",
+      "suggested_scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Intent/route quan sát phù hợp expected; đối chiếu mô tả case. Có hai đơn thì hỏi mã, giữ nguyên cả hai dòng đơn.",
+        "extraction": "Có hai đơn thì hỏi mã, giữ nguyên cả hai dòng đơn.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route ask_missing phù hợp expected trong case; Có hai đơn thì hỏi mã, giữ nguyên cả hai dòng đơn.",
+        "response": "Có hai đơn thì hỏi mã, giữ nguyên cả hai dòng đơn."
+      },
+      "human_confirmation_required": true
+    },
+    {
+      "id": "F04",
+      "reviewer_type": "ai_assisted",
+      "evidence_sha256": "55e5f83bfe2966e40b08efff318b87a04b9ff4834870036655f8409cd9965feb",
+      "suggested_scores": {
+        "intent": null,
+        "extraction": null,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "reasons": {
+        "intent": "Lỗi chèn làm mất output model; không gán điểm intent model từ một expected null.",
+        "extraction": "PII đã che hoặc không có output hợp lệ; chưa đủ evidence chấm đầy đủ.",
+        "validation": "HTTP 200, số đơn và invariant tồn kho khớp kiểm tra trong báo cáo gốc; chưa chạy lại model.",
+        "routing": "Route failed_validation phù hợp expected trong case; Rate limit được chèn; phản hồi hướng dẫn đợi, không đổi đơn và không tính là 429 provider thật.",
+        "response": "Rate limit được chèn; phản hồi hướng dẫn đợi, không đổi đơn và không tính là 429 provider thật."
+      },
+      "human_confirmation_required": true
+    }
+  ]
+}

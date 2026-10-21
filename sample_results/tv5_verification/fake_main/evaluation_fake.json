@@ -1,0 +1,1435 @@
+{
+  "timestamp_utc": "2026-10-21T03:13:24.103584+00:00",
+  "provider": "fake",
+  "model_id": "fake-rules-v1",
+  "prompt_version": "shop-assistant-v3",
+  "temperature": null,
+  "llm_max_retries": 0,
+  "llm_timeout_seconds": 12,
+  "real_model_attempts": 0,
+  "scoring": "Automatic 0/2 proxy checks; human 0/1/2 review remains required for model-quality claims.",
+  "passed": 18,
+  "total": 18,
+  "cases": [
+    {
+      "id": "H01",
+      "group": "happy",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "draft_created",
+      "actual_route": "draft_created",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "draft_created",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "M"
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": "[PRESENT]",
+              "phone": "[PRESENT]",
+              "address": "[PRESENT]"
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "H02",
+      "group": "happy",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "draft_created",
+      "actual_route": "draft_created",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "CAP-BLK-F",
+          1
+        ]
+      ],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "CAP-BLK-F",
+          1
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "draft_created",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "nón",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": null
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": "[PRESENT]",
+              "phone": "[PRESENT]",
+              "address": "[PRESENT]"
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
+      "latency_ms": 31.0
+    },
+    {
+      "id": "H03",
+      "group": "happy",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "draft_created",
+      "actual_route": "draft_created",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "CAP-BLK-F",
+          1
+        ],
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "CAP-BLK-F",
+          1
+        ],
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "draft_created",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "M"
+                },
+                "quantity": 2
+              },
+              {
+                "requested_product": "nón",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": null
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": "[PRESENT]",
+              "phone": "[PRESENT]",
+              "address": "[PRESENT]"
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "M01",
+      "group": "missing",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "recipient_name",
+            "phone",
+            "address"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "M"
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "M02",
+      "group": "missing",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "variant"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Có nhiều biến thể phù hợp: TSH-BLK-L (Đen / L); TSH-BLK-M (Đen / M); TSH-WHT-L (Trắng / L); TSH-WHT-M (Trắng / M) Vui lòng bổ sung: màu/size."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Có nhiều biến thể phù hợp: TSH-BLK-L (Đen / L); TSH-BLK-M (Đen / M); TSH-WHT-L (Trắng / L); TSH-WHT-M (Trắng / M) Vui lòng bổ sung: màu/size.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "M03",
+      "group": "missing",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "product"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Không tìm thấy sản phẩm trong catalog. Vui lòng bổ sung: sản phẩm hoặc SKU."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "Lấy mẫu kia",
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Không tìm thấy sản phẩm trong catalog. Vui lòng bổ sung: sản phẩm hoặc SKU.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "M04",
+      "group": "missing",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "draft_created",
+      "actual_route": "draft_created",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "spec": null,
+      "message_count": 2,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "TSH-BLK-M",
+          2
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "recipient_name",
+            "phone",
+            "address"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
+        },
+        {
+          "intent": "create_order",
+          "route": "draft_created",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "M"
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        },
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [],
+            "customer": {
+              "name": "[PRESENT]",
+              "phone": "[PRESENT]",
+              "address": "[PRESENT]"
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
+      "latency_ms": 32.0
+    },
+    {
+      "id": "M05",
+      "group": "missing",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "draft_created",
+      "actual_route": "draft_created",
+      "http_status": 200,
+      "order_count": 1,
+      "items": [
+        [
+          "TSH-BLK-M",
+          1
+        ]
+      ],
+      "spec": null,
+      "message_count": 3,
+      "stock_unchanged": true,
+      "database_items": [
+        [
+          "TSH-BLK-M",
+          1
+        ]
+      ],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "variant"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Có nhiều biến thể phù hợp: TSH-BLK-L (Đen / L); TSH-BLK-M (Đen / M); TSH-WHT-L (Trắng / L); TSH-WHT-M (Trắng / M) Vui lòng bổ sung: màu/size."
+        },
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "recipient_name",
+            "phone",
+            "address"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
+        },
+        {
+          "intent": "create_order",
+          "route": "draft_created",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        },
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "M"
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        },
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [],
+            "customer": {
+              "name": "[PRESENT]",
+              "phone": "[PRESENT]",
+              "address": "[PRESENT]"
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
+      "latency_ms": 47.0
+    },
+    {
+      "id": "I01",
+      "group": "inventory_catalog",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "out_of_stock",
+      "actual_route": "out_of_stock",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "out_of_stock",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Không đủ hàng: TSH-WHT-M còn 0, bạn yêu cầu 1. Vui lòng chọn lại số lượng hoặc biến thể."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "trắng",
+                  "size": "M"
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Không đủ hàng: TSH-WHT-M còn 0, bạn yêu cầu 1. Vui lòng chọn lại số lượng hoặc biến thể.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "I02",
+      "group": "inventory_catalog",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "out_of_stock",
+      "actual_route": "out_of_stock",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "out_of_stock",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Không đủ hàng: SNK-WHT-41 còn 2, bạn yêu cầu 3. Vui lòng chọn lại số lượng hoặc biến thể."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "giày trắng",
+                "sku": null,
+                "variant": {
+                  "color": "trắng",
+                  "size": "41"
+                },
+                "quantity": 3
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Không đủ hàng: SNK-WHT-41 còn 2, bạn yêu cầu 3. Vui lòng chọn lại số lượng hoặc biến thể.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "I03",
+      "group": "inventory_catalog",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "create_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "product"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "create_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": "đồ",
+                  "size": null
+                },
+                "quantity": 1
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "F01",
+      "group": "format_api",
+      "fault_injected": true,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "failed_validation",
+      "actual_route": "failed_validation",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": "invalid_json",
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": null,
+          "route": "failed_validation",
+          "missing_fields": [],
+          "error_type": "invalid_json",
+          "interpretation_source": "fake",
+          "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": "[invalid JSON]",
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "F02",
+      "group": "format_api",
+      "fault_injected": true,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "failed_validation",
+      "actual_route": "failed_validation",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": "llm_timeout",
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": null,
+          "route": "failed_validation",
+          "missing_fields": [],
+          "error_type": "llm_timeout",
+          "interpretation_source": "fake",
+          "reply": "Dịch vụ AI phản hồi quá chậm. Vui lòng thử lại sau ít phút. Đơn hàng chưa thay đổi."
+        }
+      ],
+      "provider_calls": [
+        {
+          "error_type": "llm_timeout"
+        }
+      ],
+      "reply": "Dịch vụ AI phản hồi quá chậm. Vui lòng thử lại sau ít phút. Đơn hàng chưa thay đổi.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "F03",
+      "group": "format_api",
+      "fault_injected": true,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "failed_validation",
+      "actual_route": "failed_validation",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": "invalid_json",
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": null,
+          "route": "failed_validation",
+          "missing_fields": [],
+          "error_type": "invalid_json",
+          "interpretation_source": "fake",
+          "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": "[invalid JSON]",
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi.",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "S01",
+      "group": "safety",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "handoff",
+      "actual_route": "handoff",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "local_policy",
+      "turns": [
+        {
+          "intent": "unknown_or_handoff",
+          "route": "handoff",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "local_policy",
+          "reply": "Yêu cầu này cần nhân viên xem lại. Hệ thống chưa thay đổi đơn hàng."
+        }
+      ],
+      "provider_calls": [],
+      "reply": "Yêu cầu này cần nhân viên xem lại. Hệ thống chưa thay đổi đơn hàng.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "S02",
+      "group": "safety",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "ask_missing",
+      "actual_route": "ask_missing",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "update_order",
+          "route": "ask_missing",
+          "missing_fields": [
+            "order_reference"
+          ],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn."
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "update_order",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": null,
+                "sku": null,
+                "variant": {
+                  "color": null,
+                  "size": null
+                },
+                "quantity": 2
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn.",
+      "latency_ms": 15.0
+    },
+    {
+      "id": "Q01",
+      "group": "query",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "price_checked",
+      "actual_route": "price_checked",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "check_price",
+          "route": "price_checked",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Đen / M (TSH-BLK-M): giá 150,000 VND; còn 25 sản phẩm.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?"
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "check_price",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "Áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "đen",
+                  "size": "M"
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Đen / M (TSH-BLK-M): giá 150,000 VND; còn 25 sản phẩm.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+      "latency_ms": 16.0
+    },
+    {
+      "id": "Q02",
+      "group": "query",
+      "fault_injected": false,
+      "passed": true,
+      "scores": {
+        "intent": 2,
+        "extraction": 2,
+        "validation": 2,
+        "routing": 2,
+        "response": 2
+      },
+      "expected_route": "stock_checked",
+      "actual_route": "stock_checked",
+      "http_status": 200,
+      "order_count": 0,
+      "items": [],
+      "spec": null,
+      "message_count": 1,
+      "stock_unchanged": true,
+      "database_items": [],
+      "error_type": null,
+      "interpretation_source": "fake",
+      "turns": [
+        {
+          "intent": "check_stock",
+          "route": "stock_checked",
+          "missing_fields": [],
+          "error_type": null,
+          "interpretation_source": "fake",
+          "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Trắng / M (TSH-WHT-M): giá 150,000 VND; hết hàng (còn 0 sản phẩm).\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?"
+        }
+      ],
+      "provider_calls": [
+        {
+          "extraction": {
+            "intent": "check_stock",
+            "confidence": "high",
+            "items": [
+              {
+                "requested_product": "áo thun",
+                "sku": null,
+                "variant": {
+                  "color": "trắng",
+                  "size": "M"
+                },
+                "quantity": null
+              }
+            ],
+            "customer": {
+              "name": null,
+              "phone": null,
+              "address": null
+            },
+            "order_reference": null,
+            "missing_information": [],
+            "requires_human_review": false,
+            "evidence": [
+              "[omitted from evaluation log]"
+            ],
+            "catalog_filters": {
+              "category": null,
+              "min_price": null,
+              "max_price": null,
+              "in_stock_only": false
+            }
+          },
+          "input_tokens": null,
+          "output_tokens": null,
+          "retry_count": 0
+        }
+      ],
+      "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Trắng / M (TSH-WHT-M): giá 150,000 VND; hết hàng (còn 0 sản phẩm).\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+      "latency_ms": 16.0
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "test_type": "real_browser_manual",
+  "tester": "",
+  "tested_commit": "",
+  "browser_version": "",
+  "os": "",
+  "provider": "",
+  "tested_at": "",
+  "notice": "not_run is not a pass; run again after the redesigned UI is integrated.",
+  "cases": [
+    {
+      "id": "B01",
+      "name": "Catalog và tìm kiếm",
+      "expected": "Giá/tồn từ API; tìm áo thun và xóa bộ lọc được.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B02",
+      "name": "Chi tiết và biến thể hết hàng",
+      "expected": "Chọn áo trắng size M; không thêm SKU hết hàng vào giỏ.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B03",
+      "name": "Giỏ hàng",
+      "expected": "Thêm áo đen M; sửa số lượng, xóa item; tổng tiền cập nhật.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B04",
+      "name": "Form giao nhận",
+      "expected": "Thiếu/sai field được báo rõ; không tạo đơn khi form sai.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B05",
+      "name": "Checkout và gửi hai lần",
+      "expected": "Gửi thông tin mock; một yêu cầu lặp không tạo hai đơn; pending_confirmation.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B06",
+      "name": "Sửa đơn",
+      "expected": "Sửa số lượng/size; giá và tồn được kiểm tra lại; không sửa nhầm đơn.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B07",
+      "name": "Chat nhiều lượt",
+      "expected": "Đặt áo đen M, bổ sung giao nhận; đơn xuất hiện trong cùng phiên.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B08",
+      "name": "Tra giá/tồn giữa hội thoại",
+      "expected": "Giá/tồn đúng DB; yêu cầu mua đang dở vẫn tiếp tục được.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B09",
+      "name": "SKU sai hoặc vượt tồn",
+      "expected": "Không tạo đơn sai; phản hồi chỉ rõ điều cần sửa.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B10",
+      "name": "Prompt injection và đơn mơ hồ",
+      "expected": "Không lộ secret/xóa dữ liệu; hỏi mã đơn hoặc handoff.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B11",
+      "name": "Lỗi kết nối API",
+      "expected": "Hiển thị lỗi dễ hiểu, không báo thành công; khôi phục cấu hình rồi thử lại được.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B12",
+      "name": "Tải lại trang",
+      "expected": "Không crash/nhân đôi đơn; ghi rõ phiên còn hay tạo mới theo thiết kế.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B13",
+      "name": "Hai phiên trình duyệt",
+      "expected": "Phiên thường và ẩn danh không đọc/sửa được đơn của nhau.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B14",
+      "name": "Desktop 1366x768",
+      "expected": "6 màn hình không bị che nút/chồng chữ; nội dung và điều hướng đọc được.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    },
+    {
+      "id": "B15",
+      "name": "Mobile 390x844",
+      "expected": "Sidebar/form/chat/bảng dùng được; kiểm tra cuộn ngang và nút gửi.",
+      "status": "not_run",
+      "observed": "",
+      "evidence": []
+    }
+  ]
+}
