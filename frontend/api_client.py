@@ -4,14 +4,15 @@ Mọi dữ liệu đi qua đây. Frontend không truy cập database và không 
 tổng tiền, tồn kho, user_id hay trạng thái lên server: những giá trị đó do backend quyết định.
 """
 import os
+import uuid
 from urllib.parse import quote
 
 import requests
 
-from shop_api import ShopApiMixin
+from backend.shop_api import ShopApiMixin
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-TIMEOUT = float(os.getenv("API_TIMEOUT_SECONDS", "15"))
+TIMEOUT = float(os.getenv("API_TIMEOUT_SECONDS", "55"))
 
 _KIND_BY_STATUS = {
     401: "auth", 403: "forbidden", 404: "not_found",
@@ -59,6 +60,7 @@ class ApiClient(ShopApiMixin):
         self.base_url = base_url.rstrip("/")
         self.http = requests.Session()
         self.token = None
+        self._pending_chat = None
 
     def _request(self, method, path, headers=None, **kwargs):
         all_headers = dict(headers or {})
@@ -102,4 +104,9 @@ class ApiClient(ShopApiMixin):
 
     # --- chat: backend hiểu tin nhắn và quyết định hành động ---
     def chat(self, message):
-        return self._request("POST", "/api/chat", json={"message": message})
+        if not self._pending_chat or self._pending_chat[0] != message:
+            self._pending_chat = (message, uuid.uuid4().hex)
+        result = self._request("POST", "/api/chat", json={"message": message},
+                               headers={"Idempotency-Key": self._pending_chat[1]})
+        self._pending_chat = None
+        return result

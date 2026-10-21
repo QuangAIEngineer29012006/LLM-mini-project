@@ -1,0 +1,165 @@
+{
+  "timestamp_utc": "2026-10-21T01:52:02.784372+00:00",
+  "model": "gemini-3.6-flash",
+  "prompt_version": "shop-assistant-v2",
+  "database": "temporary seeded SQLite",
+  "mock_provider": false,
+  "completed": false,
+  "passed": false,
+  "cases": [
+    {
+      "name": "Original screenshot question",
+      "expected_route": "catalog_shown",
+      "actual_route": "catalog_shown",
+      "intent": "browse_catalog",
+      "passed": true,
+      "error_type": null,
+      "product_count": 6,
+      "reply": "Mình tìm được các sản phẩm sau trong cửa hàng:\n\n1. Áo thun basic cotton (Áo)\nÁo thun cotton 100%, form regular.\nGiá 150,000 VND; còn hàng.\n\n2. Áo hoodie nỉ (Áo)\nHoodie nỉ bông dày, có mũ.\nGiá 380,000–390,000 VND; còn hàng.\n\n3. Giày sneaker trắng (Giày)\nSneaker da tổng hợp, đế cao su.\nGiá 750,000 VND; còn hàng.\n\n4. Dép quai ngang (Giày)\nDép quai ngang đế êm.\nGiá 120,000 VND; còn hàng.\n\n5. Nón lưỡi trai (Phụ kiện)\nNón lưỡi trai cotton, khóa điều chỉnh.\nGiá 90,000 VND; còn hàng.\n\n6. Balo laptop (Phụ kiện)\nBalo chống nước, ngăn laptop 15 inch.\nGiá 520,000 VND; còn hàng.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+      "latency_ms": 36367.5
+    },
+    {
+      "name": "Product details",
+      "expected_route": "catalog_shown",
+      "actual_route": "catalog_shown",
+      "intent": "browse_catalog",
+      "passed": true,
+      "error_type": null,
+      "product_count": 1,
+      "reply": "Mình tìm được các sản phẩm sau trong cửa hàng:\n\n1. Áo thun basic cotton (Áo)\nÁo thun cotton 100%, form regular.\n- Đen / M (TSH-BLK-M): giá 150,000 VND; còn 25 sản phẩm.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+      "latency_ms": 33405.3
+    },
+    {
+      "name": "Follow-up price",
+      "expected_route": "price_checked",
+      "actual_route": "price_checked",
+      "intent": "check_price",
+      "passed": true,
+      "error_type": null,
+      "product_count": 1,
+      "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Đen / M (TSH-BLK-M): giá 150,000 VND; còn 25 sản phẩm.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+      "latency_ms": 47238.64
+    },
+    {
+      "name": "Follow-up stock",
+      "expected_route": "stock_checked",
+      "actual_route": "stock_checked",
+      "intent": "check_stock",
+      "passed": true,
+      "error_type": null,
+      "product_count": 1,
+      "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Đen / M (TSH-BLK-M): giá 150,000 VND; còn 25 sản phẩm.\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
+      "latency_ms": 15764.67
+    }
+  ],
+  "provider_calls": [
+    {
+      "http_status": 503,
+      "model_version": null,
+      "seconds": 3.79,
+      "usage": null,
+      "retry_after": null
+    },
+    {
+      "transport_error": "ReadTimeout"
+    },
+    {
+      "http_status": 200,
+      "model_version": "gemini-3.6-flash",
+      "seconds": 4.34,
+      "usage": {
+        "promptTokenCount": 2467,
+        "candidatesTokenCount": 142,
+        "totalTokenCount": 3023,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2467
+          }
+        ],
+        "thoughtsTokenCount": 414,
+        "serviceTier": "standard"
+      },
+      "retry_after": null
+    },
+    {
+      "http_status": 503,
+      "model_version": null,
+      "seconds": 2.23,
+      "usage": null,
+      "retry_after": null
+    },
+    {
+      "http_status": 200,
+      "model_version": "gemini-3.6-flash",
+      "seconds": 5.74,
+      "usage": {
+        "promptTokenCount": 1986,
+        "candidatesTokenCount": 192,
+        "totalTokenCount": 2841,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1986
+          }
+        ],
+        "thoughtsTokenCount": 663,
+        "serviceTier": "standard"
+      },
+      "retry_after": null
+    },
+    {
+      "http_status": 503,
+      "model_version": null,
+      "seconds": 2.74,
+      "usage": null,
+      "retry_after": null
+    },
+    {
+      "http_status": 503,
+      "model_version": null,
+      "seconds": 3.87,
+      "usage": null,
+      "retry_after": null
+    },
+    {
+      "http_status": 200,
+      "model_version": "gemini-3.6-flash",
+      "seconds": 4.98,
+      "usage": {
+        "promptTokenCount": 1930,
+        "candidatesTokenCount": 153,
+        "totalTokenCount": 2677,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1930
+          }
+        ],
+        "thoughtsTokenCount": 594,
+        "serviceTier": "standard"
+      },
+      "retry_after": null
+    },
+    {
+      "http_status": 200,
+      "model_version": "gemini-3.6-flash",
+      "seconds": 4.73,
+      "usage": {
+        "promptTokenCount": 1940,
+        "candidatesTokenCount": 156,
+        "totalTokenCount": 2632,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1940
+          }
+        ],
+        "thoughtsTokenCount": 536,
+        "serviceTier": "standard"
+      },
+      "retry_after": null
+    }
+  ],
+  "stopped_reason": "User clarified 20 requests per model per day; stopped further live calls. Four checks passed; full suite not completed."
+}

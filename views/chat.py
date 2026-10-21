@@ -20,7 +20,7 @@ def render_message(msg, idx):
         if route == "ask_missing" and missing:
             st.info("Cần bổ sung: " + ", ".join(FIELD_LABEL.get(f) or safe_md(f) for f in missing))
         elif route == "handoff":
-            st.warning("Yêu cầu đã được chuyển cho nhân viên. Vui lòng chờ nhân viên phản hồi.")
+            st.warning("Yêu cầu cần nhân viên xem lại. Vui lòng liên hệ shop để được hỗ trợ.")
         order = msg.get("order")
         if order:
             render_order(order)
@@ -30,7 +30,7 @@ def render_message(msg, idx):
 
 
 st.title("Chat đặt hàng")
-st.caption("Nhắn như khi bình luận trong livestream. Ví dụ: “Chốt 2 áo xanh size M, giao về Quận 7”.")
+st.caption("Hỏi sản phẩm, giá, tồn kho hoặc đặt hàng. Ví dụ: “Cửa hàng bán những gì?”")
 
 for idx, msg in enumerate(history):
     render_message(msg, idx)

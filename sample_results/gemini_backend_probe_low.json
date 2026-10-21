@@ -1,0 +1,19 @@
+{
+  "thinking_level": "LOW",
+  "calls": [
+    {
+      "transport_error": "ReadTimeout",
+      "seconds": 30.11
+    }
+  ],
+  "api_status": 200,
+  "result": {
+    "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Đơn hàng chưa thay đổi; vui lòng thử lại.",
+    "route": "failed_validation",
+    "missing_fields": [],
+    "order": null,
+    "error_type": "llm_timeout",
+    "request_id": "063244f02da1464ca4cff43de2475b23",
+    "intent": null
+  }
+}

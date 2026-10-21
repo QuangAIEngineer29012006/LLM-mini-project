@@ -1,0 +1,26 @@
+{
+  "thinking_level": "MINIMAL",
+  "calls": [
+    {
+      "http_status": 400,
+      "model_version": null,
+      "seconds": 0.74,
+      "usage": null,
+      "error": {
+        "code": "400",
+        "status": "INVALID_ARGUMENT",
+        "message": "Thinking level MINIMAL is not supported for this model. Please retry with other thinking level."
+      }
+    }
+  ],
+  "api_status": 200,
+  "result": {
+    "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Đơn hàng chưa thay đổi; vui lòng thử lại.",
+    "route": "failed_validation",
+    "missing_fields": [],
+    "order": null,
+    "error_type": "llm_request",
+    "request_id": "edb2cb3ee2304ffaa29b53ec4c2216ff",
+    "intent": null
+  }
+}
