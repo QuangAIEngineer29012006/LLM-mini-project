@@ -1,0 +1,372 @@
+{
+  "manifest_schema_version": "1.0",
+  "corpus_release": "1.0.0",
+  "created_by": "TV1 - Database & Business Data",
+  "catalog_source": "database/shop_db/seed.py",
+  "documents": [
+    {
+      "doc_id": "DOC-PRD-001",
+      "title": "Áo thun basic cotton — thông số, biến thể và bảo quản",
+      "doc_type": "product_spec",
+      "category": "Áo",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "0c0c0910bd05ee43fa2d85a89a7c52b1ae940e3bbdde28854b7c48509fd01fa3",
+      "file_size_bytes": 3332,
+      "catalog_status": "active",
+      "product_ids": [
+        1
+      ],
+      "skus": [
+        "TSH-BLK-M",
+        "TSH-BLK-L",
+        "TSH-WHT-M",
+        "TSH-WHT-L"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-PRD-002",
+      "title": "Áo hoodie nỉ — thông số, biến thể và bảo quản",
+      "doc_type": "product_spec",
+      "category": "Áo",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_02_ao_hoodie_ni.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "416a4d4d33b0ef79b3d1f676369caabaadf3704804e9a48b13efed015254490b",
+      "file_size_bytes": 3067,
+      "catalog_status": "active",
+      "product_ids": [
+        2
+      ],
+      "skus": [
+        "HOD-GRY-M",
+        "HOD-GRY-L",
+        "HOD-BLK-L"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-PRD-003",
+      "title": "Giày sneaker trắng — thông số, biến thể và bảo quản",
+      "doc_type": "product_spec",
+      "category": "Giày",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_03_giay_sneaker_trang.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "6731f945c0c4e03a630a085ef56bc81bc4aa603ef94729a40f574888d29b8e0f",
+      "file_size_bytes": 3086,
+      "catalog_status": "active",
+      "product_ids": [
+        3
+      ],
+      "skus": [
+        "SNK-WHT-40",
+        "SNK-WHT-41",
+        "SNK-WHT-42"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-PRD-004",
+      "title": "Dép quai ngang — thông số, biến thể và bảo quản",
+      "doc_type": "product_spec",
+      "category": "Giày",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_04_dep_quai_ngang.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "df51ffb4761f9a2fd25b7272993edea236d8a3b0e3b62424e089063997d1c93d",
+      "file_size_bytes": 2476,
+      "catalog_status": "active",
+      "product_ids": [
+        4
+      ],
+      "skus": [
+        "SLD-BLK-40",
+        "SLD-BLK-42"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-PRD-005",
+      "title": "Nón lưỡi trai — thông số, biến thể và bảo quản",
+      "doc_type": "product_spec",
+      "category": "Phụ kiện",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_05_non_luoi_trai.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "3433b268fadebf67db7e1cf31064fae7fae259c4b108604c01be9d666f9c1534",
+      "file_size_bytes": 2425,
+      "catalog_status": "active",
+      "product_ids": [
+        5
+      ],
+      "skus": [
+        "CAP-NVY-F",
+        "CAP-BLK-F"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-PRD-006",
+      "title": "Balo laptop — thông số, biến thể và bảo quản",
+      "doc_type": "product_spec",
+      "category": "Phụ kiện",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_06_balo_laptop.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "5dfa4b73cb030d79da4e107962c372e37be7a71860be4045270e353f8d7df273",
+      "file_size_bytes": 2902,
+      "catalog_status": "active",
+      "product_ids": [
+        6
+      ],
+      "skus": [
+        "BAG-GRY-15",
+        "BAG-BLK-15"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-PRD-007",
+      "title": "Áo khoác dù (ngừng bán) — thông báo ngừng kinh doanh và hỗ trợ hậu mãi",
+      "doc_type": "product_spec",
+      "category": "Áo",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/products/prd_07_ao_khoac_du_ngung_ban.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "572eb702bb6b1f82f993b2ec7cda14da4c3715b9b6b84e130e8a58ceaeb3220b",
+      "file_size_bytes": 2266,
+      "catalog_status": "discontinued",
+      "product_ids": [
+        7
+      ],
+      "skus": [
+        "JKT-NVY-L"
+      ],
+      "change_note": "Phát hành lần đầu cho sản phẩm đã ngừng bán trong DB."
+    },
+    {
+      "doc_id": "DOC-POL-RETURN",
+      "title": "Chính sách đổi trả, báo thiếu hàng và hủy đơn",
+      "doc_type": "policy",
+      "category": "general",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/policies/pol_doi_tra_huy_don_v1.0.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "533a8445bb7729d49514cd5790af4b5b63946475cf2c43a607a1e72706eb2c5b",
+      "file_size_bytes": 4639,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu (đổi do đổi ý trong 7 ngày, chưa tách ngoại lệ nón lưỡi trai)."
+    },
+    {
+      "doc_id": "DOC-POL-WARRANTY",
+      "title": "Chính sách bảo hành sản phẩm giày và balo",
+      "doc_type": "policy",
+      "category": "general",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/policies/pol_bao_hanh.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "34261be5dc4395b6e512fd61d8cd2236cae7b39673cc3bedc26012828d9dd8ff",
+      "file_size_bytes": 3989,
+      "catalog_status": "not_applicable",
+      "product_ids": [
+        3,
+        6
+      ],
+      "skus": [
+        "SNK-WHT-40",
+        "SNK-WHT-41",
+        "SNK-WHT-42",
+        "BAG-GRY-15",
+        "BAG-BLK-15"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-POL-SHIPPING",
+      "title": "Chính sách giao nhận, thanh toán và hóa đơn",
+      "doc_type": "policy",
+      "category": "general",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/policies/pol_giao_nhan_thanh_toan.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "64a7729e4bd3c583e59f265f5d7926be18e30d5620597d2ebadcf9266c32b617",
+      "file_size_bytes": 3101,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-GDE-SIZE",
+      "title": "Hướng dẫn chọn size và tư vấn sản phẩm theo nhu cầu",
+      "doc_type": "guide",
+      "category": "general",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/guides/gde_bang_size_tu_van.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "c37776cd9f82e6c5a9c7e5988feb6b6a7ca138e40b40d089af7c3922b21722f7",
+      "file_size_bytes": 4093,
+      "catalog_status": "not_applicable",
+      "product_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-FAQ-PUBLIC",
+      "title": "Câu hỏi thường gặp dành cho khách mua hàng",
+      "doc_type": "faq",
+      "category": "general",
+      "access_level": "public",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/guides/faq_khach_hang.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "4c2191a0d55cd05e847c6ca566f6bdd86d4fb58c58af939ba629e29b3ddb090d",
+      "file_size_bytes": 3539,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-INT-SOP-SUPPORT",
+      "title": "Quy trình nội bộ tiếp nhận handoff, xác minh thiếu hàng và duyệt đơn",
+      "doc_type": "sop_internal",
+      "category": "internal",
+      "access_level": "staff",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/internal_staff/sop_xu_ly_khieu_nai_handoff.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "6062af20e1817b43f4cebef4265f3effedb808f4fd338c10bcdcfa9e5d1b9dd2",
+      "file_size_bytes": 3412,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-INT-PROMO-RULES",
+      "title": "Quy định nội bộ về hạn mức hỗ trợ phí vận chuyển và cấu hình ưu đãi",
+      "doc_type": "sop_internal",
+      "category": "internal",
+      "access_level": "staff",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/internal_staff/sop_ho_tro_phi_va_uu_dai_noi_bo.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "ee957a58bbc6d94fcba854fba540bb0fa4f079dd7da28b90437d33b710fffde3",
+      "file_size_bytes": 2469,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-INT-STOCK-OPS",
+      "title": "Hướng dẫn vận hành tồn kho, biến động giá snapshot và sản phẩm ngừng bán",
+      "doc_type": "sop_internal",
+      "category": "internal",
+      "access_level": "staff",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/internal_staff/sop_van_hanh_ton_kho_gia.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "563a99dbfc3f640407cbdf10366721b921a13f57bae3817aae7fcf49988b291e",
+      "file_size_bytes": 2713,
+      "catalog_status": "not_applicable",
+      "product_ids": [
+        7
+      ],
+      "skus": [
+        "JKT-NVY-L"
+      ],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-ADM-RAG-OPS",
+      "title": "Quy trình quản trị phát hành corpus, nâng cấp phiên bản và rollback",
+      "doc_type": "admin_ops",
+      "category": "internal",
+      "access_level": "admin",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/internal_admin/adm_quan_tri_corpus_release.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "cd05f6f060f277d418ab6784fc22e4c5f8d98fa8edd99175d114edf8c3953bd2",
+      "file_size_bytes": 3330,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    },
+    {
+      "doc_id": "DOC-ADM-HR-POLICY",
+      "title": "Quy chế phân ca trực vận hành và định mức phụ cấp nội bộ",
+      "doc_type": "admin_ops",
+      "category": "internal",
+      "access_level": "admin",
+      "version": "1.0",
+      "author": "TV1 - Database & Business Data",
+      "source_path": "data_config/corpus/internal_admin/adm_ca_truc_va_phu_cap.md",
+      "effective_date": "2026-10-01",
+      "encoding": "utf-8",
+      "content_sha256": "b24fb180e3eb010bc396717a62dcdb952503fe71511378e67cbb968b3b8d91a3",
+      "file_size_bytes": 2464,
+      "catalog_status": "not_applicable",
+      "product_ids": [],
+      "skus": [],
+      "change_note": "Phát hành lần đầu."
+    }
+  ]
+}
