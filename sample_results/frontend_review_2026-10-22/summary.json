@@ -1,0 +1,67 @@
+{
+  "timestamp_utc": "2026-10-22T01:48:01.796977+00:00",
+  "reviewed_commit": "d4a4e310aac7c9b61424df3051be4d0fa0c2d70d",
+  "working_tree_fixes": true,
+  "os": "macOS 27.0",
+  "node": "25.8.1",
+  "backend_database_tests": {
+    "passed": 169,
+    "total": 169
+  },
+  "react_regression_tests": {
+    "passed": 9,
+    "total": 9
+  },
+  "npm_ci": "pass",
+  "typescript_build": "pass",
+  "vite_build": "pass",
+  "vite_version": "7.3.7",
+  "audit_vulnerabilities_after": 0,
+  "production_catalog_unchanged": true,
+  "catalog_sha256": "357a1ce32d5672a3e8256053861fbbd6d96288cc74766f74e83e91a7793c64e2",
+  "browser_viewports": [
+    [
+      1366,
+      768
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "browser_provider_for_mutating_workflows": "fake with dedicated temporary SQLite",
+  "manual_browser_observations": [
+    "accentless catalog search",
+    "sold-out variant disabled",
+    "cart add 2 then increase to 3 (450000 VND)",
+    "field validation for invalid phone and empty form",
+    "checkout pending_confirmation",
+    "order variant to TSH-BLK-L quantity2 total300000",
+    "reload retains order list/session",
+    "chat missing shipping -> interleaved price lookup -> shipping -> pending draft",
+    "overstock 99 rejected against stock25",
+    "prompt injection handed off safely",
+    "mobile search/orders navigation/product modal/checkout/chat",
+    "temporary API stopped -> error with retry -> restored -> recovery",
+    "temporary session expired -> renewed with notice and no access to previous session orders"
+  ],
+  "limits": [
+    "No Windows or Safari rerun",
+    "No real virtual mobile keyboard test",
+    "No incognito browser pass; isolation covered by API integration tests",
+    "Full 29-case Gemini suite from Oct21 not rerun in this frontend review"
+  ],
+  "gemini_live_smoke": {
+    "timestamp": "2026-10-22T01:47:43.417975+00:00",
+    "model_id": "gemini-3.5-flash-lite",
+    "prompt_template_version": "shop-assistant-v3",
+    "intent": "check_price",
+    "route": "price_checked",
+    "interpretation_source": "gemini",
+    "latency_ms": 6038.86,
+    "input_tokens": 1993,
+    "output_tokens": 213,
+    "retry_count": 0,
+    "error_type": null
+  }
+}

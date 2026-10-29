@@ -1,0 +1,51 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "test_database": "temporary SQLite (not production)",
+  "input": "đặt cho tôi balo laptop Balo laptop xám, 15inch",
+  "orders": [
+    {
+      "id": 1,
+      "status": "pending_confirmation",
+      "total_amount": 1040000,
+      "source": "chat"
+    }
+  ],
+  "items": [
+    {
+      "order_id": 1,
+      "sku": "BAG-GRY-15",
+      "quantity": 2,
+      "unit_price": 520000,
+      "line_total": 1040000
+    }
+  ],
+  "stock_after": 4,
+  "calls": [
+    {
+      "model_id": "gemini-3.5-flash-lite",
+      "prompt_template_version": "shop-assistant-v4",
+      "intent": "create_order",
+      "route": "ask_missing",
+      "interpretation_source": "gemini",
+      "discarded_implicit_quantity": false,
+      "latency_ms": 3528.45,
+      "input_tokens": 1995,
+      "output_tokens": 203,
+      "retry_count": 0,
+      "error_type": null
+    },
+    {
+      "model_id": "gemini-3.5-flash-lite",
+      "prompt_template_version": "shop-assistant-v4",
+      "intent": "create_order",
+      "route": "draft_created",
+      "interpretation_source": "gemini",
+      "discarded_implicit_quantity": false,
+      "latency_ms": 3284.27,
+      "input_tokens": 2062,
+      "output_tokens": 261,
+      "retry_count": 0,
+      "error_type": null
+    }
+  ]
+}

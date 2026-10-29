@@ -1,0 +1,31 @@
+{
+  "python_tests": {
+    "passed": 180,
+    "total": 180
+  },
+  "react_tests": {
+    "passed": 12,
+    "total": 12
+  },
+  "offline_cases": {
+    "passed": 29,
+    "total": 29
+  },
+  "production_catalog_and_order_count_unchanged": true,
+  "production_catalog_sha256": "357a1ce32d5672a3e8256053861fbbd6d96288cc74766f74e83e91a7793c64e2",
+  "main_web_verification": {
+    "model_id": "gemini-3.5-flash-lite",
+    "prompt_template_version": "shop-assistant-v4",
+    "intent": "create_order",
+    "route": "ask_missing",
+    "interpretation_source": "gemini",
+    "discarded_implicit_quantity": false,
+    "latency_ms": 1956.17,
+    "input_tokens": 2215,
+    "output_tokens": 210,
+    "retry_count": 0,
+    "error_type": null
+  },
+  "gemini_requests_this_task": 5,
+  "web": "http://127.0.0.1:5173"
+}

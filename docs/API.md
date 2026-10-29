@@ -63,6 +63,14 @@ Backend lưu ID/SKU đã hiển thị trong context của phiên, đọc lại D
 
 Response có `interpretation_source`: `local_catalog` cho mẫu hỏi catalog/giá/tồn rõ nghĩa được xử lý bằng rule, `gemini` cho lượt gọi model thật, hoặc `fake` trong chế độ test offline. Route đọc catalog luôn lấy dữ liệu hiện tại từ SQLite. Timeout, retry và ngân sách gọi model được cấu hình qua `.env`; bộ đếm được lưu trong SQLite và giữ qua các lần khởi động.
 
+## Bổ sung đơn qua hội thoại
+
+Khi `create_order` đã xác định duy nhất SKU nhưng còn thiếu số lượng/giao nhận, response `ask_missing` có thêm `purchase.items`: mỗi dòng gồm `sku`, `name`, `variant_label`, `unit_price`, `stock`, `quantity` (có thể null). Các giá trị giá/tồn và nhãn sản phẩm lấy trực tiếp từ DB. Trường này không xuất hiện cho ý định chỉ xem hàng, SKU không xác định hoặc hết hàng.
+
+React hiển thị form trong chat; gửi form tạo một tin nhắn có số lượng, SKU và giao nhận do người dùng nhập, vẫn dùng `POST /api/chat` và `Idempotency-Key`. Backend kiểm tra lại toàn bộ dữ liệu; không tin giá/tồn từ UI. Đủ thông tin thì trả `draft_created` và `order`; chat hiển thị dòng hàng, tổng tiền và nút mở đúng đơn.
+
+`15inch` và `15 inch` được chuẩn hóa khi đối chiếu size. Kích thước, số trong SKU, điện thoại và địa chỉ không được dùng làm số lượng. Nếu model tự điền số lượng khi khách chưa nêu, server bỏ giá trị tự điền để hỏi lại; không tự tạo đơn với số lượng mặc định. Audit có `discarded_implicit_quantity` để nhận biết bước này. Prompt hiện tại: `shop-assistant-v4`.
+
 ## Phản hồi lỗi và cấu hình request
 
 ```json

@@ -4,11 +4,11 @@ Website bán hàng tích hợp trợ lý AI: xem sản phẩm, chọn biến th�
 
 ## Công nghệ
 
-React + TypeScript + Vite → FastAPI → SQLite. Gemini trích xuất intent và dữ liệu JSON; backend kiểm tra schema, SKU, tồn kho và quyền trước khi thực hiện hành động. Prompt hiện hành: `shop-assistant-v3`.
+React + TypeScript + Vite → FastAPI → SQLite. Gemini trích xuất intent và dữ liệu JSON; backend kiểm tra schema, SKU, tồn kho và quyền trước khi thực hiện hành động. Prompt hiện hành: `shop-assistant-v4`.
 
 ## Bắt đầu trên Windows
 
-Yêu cầu Python 3.12+ và Node.js có npm. Mở PowerShell tại thư mục vừa giải nén:
+Yêu cầu Python 3.12+ và Node.js 24 (hoặc nhánh 22 từ 22.12) có npm. Mở PowerShell tại thư mục vừa giải nén:
 
 ```powershell
 python -m venv .venv
@@ -38,7 +38,7 @@ Mở http://127.0.0.1:5173. Giữ hai cửa sổ chạy. Vite chuyển tiếp `/
 
 - Catalog theo danh mục; tìm kiếm, chọn màu/size, xem giá và tồn kho.
 - Giỏ hàng và giao nhận; tạo đơn `pending_confirmation` với tổng tiền do server tính.
-- Chat tạo đơn, hỏi giá/tồn kho, bổ sung thông tin và sửa đơn.
+- Chat tạo đơn, hỏi giá/tồn kho, bổ sung thông tin và sửa đơn. Ví dụ: “Đặt cho tôi balo laptop xám, 15inch”; bot đối chiếu SKU và hiển thị form số lượng/giao nhận ngay trong chat, sau đó tạo đơn chờ xác nhận.
 - Phiên người dùng, kiểm tra quyền, chống tạo trùng bằng idempotency và audit.
 
 ## Kiểm thử và đánh giá
@@ -48,6 +48,7 @@ Mở http://127.0.0.1:5173. Giữ hai cửa sổ chạy. Vite chuyển tiếp `/
 .\.venv\Scripts\python.exe scripts/evaluate.py --provider fake --output sample_results/current/fake_main
 .\.venv\Scripts\python.exe scripts/evaluate.py --provider fake --case-file tests/spec_literal_cases.json --output sample_results/current/fake_literal
 cd frontend
+npm test
 npm run build
 ```
 
@@ -59,7 +60,7 @@ npm run build
 - [Demo 7 phút](docs/DEMO_RUNBOOK.md) · [Kiểm tra trình duyệt](docs/BROWSER_ACCEPTANCE.md)
 - [Cấu trúc bản tổng hợp](docs/RELEASE_NOTES.md)
 
-Giao diện chính là React tại `frontend/src/`. `app.py`, `views/` và các module Python trong `frontend/` là giao diện Streamlit tương thích và phục vụ bộ test cũ. Khi chạy bản demo chính, dùng hai lệnh backend/Vite ở trên.
+Giao diện duy nhất là React tại `frontend/src/`. Khi chạy demo, dùng hai lệnh backend/Vite ở trên.
 
 ## Khi npm báo EUSAGE hoặc không tìm thấy Vite
 
@@ -71,3 +72,9 @@ npm run dev
 ```
 
 `npm install` đồng bộ lockfile và cài dependency. Sau khi hoàn tất có thể tiếp tục dùng `npm ci` với lockfile mới.
+
+## Rà soát frontend ngày 22/10/2026
+
+Xem [báo cáo React](sample_results/frontend_review_2026-10-22/REPORT.md) cho các lỗi đã sửa, test hồi quy, kiểm tra desktop/mobile và giới hạn nghiệm thu. Giao diện chạy tại http://127.0.0.1:5173. Trên macOS/Linux, dùng `.venv/bin/python` thay cho đường dẫn Python Windows trong các lệnh trên.
+
+Luồng đặt hàng qua bot ngày 22/10: [cách hoạt động và kiểm thử Gemini thật](sample_results/chat_purchase_2026-10-22/REPORT.md).

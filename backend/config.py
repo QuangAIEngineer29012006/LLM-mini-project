@@ -23,6 +23,7 @@ class Settings:
     session_limit: int = 20
 
     @classmethod
+    # Đọc cấu hình từ .env/biến môi trường và kiểm tra key, timeout, retry cùng các giới hạn.
     def from_env(cls):
         load_dotenv()
         settings = cls(

@@ -1,16 +1,19 @@
+import json
 import logging
 import re
 import time
 from datetime import datetime, timezone
 
+from pydantic import ValidationError
+
 from database.shop_db import audit_service as audit, catalog_service as catalog
 from database.shop_db import conversation_service as conversations, order_service as orders
 from database.shop_db.db import transaction
-from database.shop_db.errors import DataServiceError
+from database.shop_db.errors import DataServiceError, OrderNotFound, SkuNotFound
 from database.shop_db.text_utils import normalize
-from database.shop_db.validation import normalize_items
+from database.shop_db.validation import normalize_items, validate_delivery
 from src.llm_client import LLMError
-from src.parser import OutputError, parse_output, validate_grounding
+from src.parser import OutputError, discard_implicit_quantities, parse_output, validate_grounding
 from src.prompts import PROMPT_VERSION
 
 from .errors import ApiProblem
@@ -27,18 +30,22 @@ FIELD_NAMES = {"recipient_name": "tên người nhận", "phone": "số điện 
 UNSAFE = re.compile(r"bo qua.*huong dan|ignore.*instructions?|api[ _-]?key|system prompt|"
                     r"xoa.*(?:don|du lieu)|delete.*orders?|drop\s+table|(?:xac nhan|danh dau).*(?:thanh toan|da tra)")
 READ_INTENTS = {"browse_catalog", "check_price", "check_stock"}
+DRAFT_INTENTS = {"create_order", "update_order"}
 
 
+# Tạo cấu trúc phản hồi chat chung gồm lời nhắn, nhánh xử lý, trường thiếu và đơn nếu có.
 def response(reply, route, missing=(), order=None, **extra):
     return {"reply": reply, "route": route, "missing_fields": list(missing), "order": order, **extra}
 
 
+# Đổi tên các trường còn thiếu sang tiếng Việt và tạo câu hỏi bổ sung thông tin.
 def ask(fields, detail=""):
     fields = list(dict.fromkeys(fields))
     text = ", ".join(FIELD_NAMES.get(f, f) for f in fields)
     return response((detail + " Vui lòng bổ sung: " + text + ".").strip(), "ask_missing", fields)
 
 
+# Chọn sản phẩm liên quan từ database làm ngữ cảnh để LLM nhận diện yêu cầu.
 def _catalog_context(conn, message, context):
     found = catalog.search_products(conn, message, limit=3)
     for item in context.get("items", []):
@@ -54,6 +61,7 @@ def _catalog_context(conn, message, context):
     return result
 
 
+# Gộp thông tin bổ sung của cùng một sản phẩm với dữ liệu đã thu thập ở lượt trước.
 def _merge_items(previous, incoming):
     if not incoming:
         return previous
@@ -69,9 +77,13 @@ def _merge_items(previous, incoming):
     return incoming
 
 
+# Đối chiếu tên/SKU, màu và size với catalog; hỏi lại khi chưa xác định duy nhất biến thể.
 def resolve_item(conn, item):
     if item.get("sku"):
-        candidates = [catalog.get_variant(conn, item["sku"])]
+        try:
+            candidates = [catalog.get_variant(conn, item["sku"])]
+        except SkuNotFound:
+            return None, ask(["product"], f"Không tìm thấy SKU {item['sku']} trong catalog.")
     elif item.get("requested_product"):
         found = catalog.search_products(conn, item["requested_product"], limit=5)
         if not found:
@@ -93,6 +105,7 @@ def resolve_item(conn, item):
     return candidates[0], None
 
 
+# Kiểm tra tên, điện thoại, địa chỉ và trả giao nhận đã chuẩn hóa hoặc danh sách trường lỗi.
 def _shipping(customer):
     mapped = {"recipient_name": customer.get("name"), "phone": customer.get("phone"), "address": customer.get("address")}
     missing = [k for k, v in mapped.items() if not v]
@@ -100,9 +113,8 @@ def _shipping(customer):
         return None, missing
     try:
         shipping = Shipping.model_validate(mapped)
-    except ValueError:
-        return None, [k for k, v in mapped.items() if not v or (k == "address" and len(v) < 10)] or ["recipient_name"]
-    from database.shop_db.validation import validate_delivery
+    except ValidationError as err:
+        return None, [e["loc"][0] for e in err.errors()]
     try:
         clean = validate_delivery({"customer_name": shipping.recipient_name, "phone": shipping.phone,
                                    "address": shipping.address}, require_all=True)
@@ -111,41 +123,60 @@ def _shipping(customer):
     return clean, []
 
 
+# Kiểm tra hàng, số lượng, giao nhận; hỏi phần còn thiếu hoặc tạo đơn nháp từ hội thoại.
 def _draft(conn, ctx, session, slots, key):
     items = slots.get("items", [])
     if not items:
         return ask(["product", "quantity"])
-    resolved = []
+    resolved, selected, missing = [], [], []
     for item in items:
         variant, problem = resolve_item(conn, item)
         if problem:
             return problem
+        selected.append({"sku": variant["sku"], "name": variant["product_name"],
+                         "variant_label": variant["variant_name"], "unit_price": variant["price"],
+                         "stock": variant["stock"], "quantity": item.get("quantity")})
+        if variant["stock"] <= 0:
+            return response(f"Không đủ hàng: {variant['sku']} còn 0. Vui lòng chọn biến thể khác.", "out_of_stock")
         if item.get("quantity") is None:
-            return ask(["quantity"])
+            missing.append("quantity")
+            continue
         resolved.append({"sku": variant["sku"], "quantity": item["quantity"]})
+    delivery, delivery_missing = _shipping(slots.get("customer", {}))
+    missing.extend(delivery_missing)
+    if missing:
+        # Validate any explicit quantities even when another line is incomplete.
+        stock = catalog.check_items(conn, resolved) if resolved else {"ok": True}
+        if stock["ok"]:
+            detail = "Đã chọn: " + "; ".join(f"{i['name']} — {i['variant_label']} ({i['unit_price']:,} VND/sản phẩm)" for i in selected) + "."
+            result = ask(missing, detail)
+            result["purchase"] = {"items": selected}
+            return result
     resolved = [{"sku": s, "quantity": q} for s, q in normalize_items(resolved)]
     stock = catalog.check_items(conn, resolved)
     if not stock["ok"]:
         details = "; ".join(f"{r['sku']} còn {r['available']}, bạn yêu cầu {r['requested']}" for r in stock["results"] if not r["ok"])
         return response("Không đủ hàng: " + details + ". Vui lòng chọn lại số lượng hoặc biến thể.", "out_of_stock")
-    delivery, missing = _shipping(slots.get("customer", {}))
-    if missing:
-        return ask(missing)
     order = orders.create_draft_order(conn, ctx, session["owner_id"], resolved, delivery, source="chat", idempotency_key=key)
     return response("Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
                     "draft_created", order=order_view(conn, order))
 
 
+# Yêu cầu tên sản phẩm nếu chưa rõ, rồi trả thông tin catalog, giá hoặc tồn kho từ database.
 def _query(conn, items, intent, filters):
     if not items or any(not i.get("requested_product") and not i.get("sku") for i in items):
         return ask(["product"])
     return catalog_reply(conn, items, filters, intent)
 
 
+# Xác định đúng đơn/dòng hàng được phép sửa và cập nhật số lượng hoặc biến thể theo yêu cầu.
 def _update(conn, ctx, session, slots):
     reference = slots.get("order_reference")
     if reference:
-        order = owned_order(conn, session["owner_id"], order_number(reference))
+        try:
+            order = owned_order(conn, session["owner_id"], order_number(reference))
+        except (ApiProblem, OrderNotFound):
+            return ask(["order_reference"], f"Không tìm thấy đơn {reference} trong phiên của bạn.")
     else:
         candidates = orders.list_orders(conn, session["owner_id"], statuses=["pending_confirmation"], limit=2)
         if len(candidates) != 1:
@@ -184,6 +215,7 @@ def _update(conn, ctx, session, slots):
     return response("Đã cập nhật đơn nháp và kiểm tra lại tồn kho.", "order_updated", order=order_view(conn, updated))
 
 
+# Điều phối toàn bộ lượt chat: chống gửi trùng, gọi LLM, kiểm tra dữ liệu, xử lý đơn và ghi audit.
 def chat(conn, ctx, session, message, client, key):
     start = time.monotonic()
     owner, cid = session["owner_id"], session["conversation_id"]
@@ -213,7 +245,10 @@ def chat(conn, ctx, session, message, client, key):
                                           for p in (catalog.get_product(conn, pid) for pid in context.get("catalog_product_ids", [])[:8])]
             llm = client.generate(message, _catalog_context(conn, message, context), context)
             meta.update(input_tokens=llm.input_tokens, output_tokens=llm.output_tokens, retry_count=llm.retry_count)
-            data = validate_grounding(parse_output(llm.text), message)
+            parsed = parse_output(llm.text)
+            quantities = [item.quantity for item in parsed.items]
+            data = validate_grounding(discard_implicit_quantities(parsed, message), message)
+            meta["discarded_implicit_quantity"] = quantities != [item.quantity for item in data.items]
             meta["intent"] = data.intent
         except (OutputError, LLMError) as err:
             meta.update(validation_status="failed", error_type=err.code, retry_count=getattr(err, "retry_count", 0))
@@ -245,7 +280,7 @@ def chat(conn, ctx, session, message, client, key):
                 continuing = data.intent == conv["pending_intent"]
                 previous = slots if continuing else {}
                 incoming = [i.model_dump() for i in data.items]
-                if data.intent in {"create_order", "browse_catalog", "check_price", "check_stock"}:
+                if data.intent in READ_INTENTS | {"create_order"}:
                     if not incoming and data.intent in {"check_price", "check_stock"}:
                         incoming = [{"requested_product": None, "sku": None, "variant": {"color": None, "size": None}, "quantity": None}]
                     incoming = resolve_reference(conn, incoming, conv["context"], message)
@@ -264,7 +299,7 @@ def chat(conn, ctx, session, message, client, key):
                     result = _query(conn, slots["items"], data.intent, data.catalog_filters)
                 if data.intent in READ_INTENTS:
                     saved = browsing_context(result) if "products" in result else {}
-                    if conv["pending_intent"] in {"create_order", "update_order"}:
+                    if conv["pending_intent"] in DRAFT_INTENTS:
                         slots = {**conv["context"], **saved}
                     else:
                         slots = {**conv["context"], **slots, **saved}
@@ -276,7 +311,7 @@ def chat(conn, ctx, session, message, client, key):
                                               last_order_id=order_number(result["order"]["order_id"]))
         elif data and route != "failed_validation":
             if data.intent in READ_INTENTS:
-                pending = conv["pending_intent"] if conv["pending_intent"] in {"create_order", "update_order"} else None
+                pending = conv["pending_intent"] if conv["pending_intent"] in DRAFT_INTENTS else None
             else:
                 pending = data.intent
             conversations.update_conversation(conn, cid, context=slots, state="collecting_info" if pending else "idle", pending_intent=pending)
@@ -289,6 +324,5 @@ def chat(conn, ctx, session, message, client, key):
         audit.log_event(conn, ctx, "chat_processed", details=meta)
         if route != "failed_validation":
             save_receipt(conn, owner, "chat", key, message, result)
-    import json
     logger.info(json.dumps(meta, ensure_ascii=False))
     return result

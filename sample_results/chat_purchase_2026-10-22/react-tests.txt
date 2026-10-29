@@ -1,0 +1,13 @@
+
+> live-commerce-frontend@1.0.0 test
+> vitest run
+
+
+ RUN  v4.1.12 /Users/mac/Intern FSOFT/projects/miniproject4/LLM-mini-project/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  09:44:37
+   Duration  3.83s (transform 101ms, setup 0ms, import 211ms, tests 1.39s, environment 1.99s)
+

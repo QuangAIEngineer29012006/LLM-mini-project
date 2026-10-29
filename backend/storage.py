@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS api_receipts (
 """
 
 
+# Chạy migration, seed catalog nếu chưa có sản phẩm và tạo bảng phiên/chống gửi trùng.
 def initialize(path):
     conn = connect(path)
     try:
@@ -43,6 +44,7 @@ def initialize(path):
         conn.close()
 
 
+# Tạo token, chủ phiên và hội thoại mới; database chỉ lưu hash của token cùng hạn dùng.
 def new_session(conn, ttl):
     token = secrets.token_urlsafe(32)
     owner = uuid.uuid4().hex
@@ -56,6 +58,7 @@ def new_session(conn, ttl):
     return {"token": token, "expires_at": expiry}
 
 
+# Kiểm tra Bearer token và trả phiên tương ứng nếu token hợp lệ, chưa hết hạn.
 def authenticate(conn, authorization):
     scheme, _, token = (authorization or "").partition(" ")
     if scheme.lower() != "bearer" or not 20 <= len(token) <= 200:
@@ -67,16 +70,19 @@ def authenticate(conn, authorization):
     return dict(row)
 
 
+# Kiểm tra định dạng khóa Idempotency-Key dùng để nhận biết các request gửi lại.
 def request_key(value):
     if value is not None and not re.fullmatch(r"[A-Za-z0-9_.:-]{8,100}", value):
         raise ApiProblem(422, "validation", "Idempotency-Key phải dài 8-100 ký tự gồm chữ, số và _-:.")
     return value
 
 
+# Tạo hash SHA-256 từ nội dung JSON đã sắp xếp khóa để so sánh các request.
 def digest(payload):
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
+# Trả kết quả đã lưu cho request lặp; báo xung đột nếu cùng khóa nhưng khác nội dung.
 def replay(conn, owner, scope, key, payload):
     if not key:
         return None
@@ -89,6 +95,7 @@ def replay(conn, owner, scope, key, payload):
     return json.loads(row["response"])
 
 
+# Lưu hash nội dung và kết quả theo phiên/phạm vi/khóa để xử lý request lặp sau này.
 def save_receipt(conn, owner, scope, key, payload, response):
     if key:
         conn.execute("INSERT INTO api_receipts VALUES (?,?,?,?,?)",

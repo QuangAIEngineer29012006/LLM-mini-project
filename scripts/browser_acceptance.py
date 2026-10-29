@@ -1,7 +1,7 @@
 """Record real-browser acceptance separately from AppTest. No synthetic PASS results."""
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]

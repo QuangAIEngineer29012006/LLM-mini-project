@@ -1,7 +1,6 @@
 import json
 import re
 import time
-import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -11,7 +10,7 @@ import requests
 
 from database.shop_db.text_utils import normalize
 
-from .parser import Extraction, NUMBER_WORDS, money_amounts
+from .parser import Extraction, NUMBER_WORDS, money_amounts, plain_text
 from .prompts import build_prompt
 from .quota import DailyBudget, DailyLimitReached
 
@@ -99,13 +98,8 @@ class GeminiLLMClient:
             time.sleep(delay)
 
 
-def _plain(text):
-    text = unicodedata.normalize("NFD", text.lower().replace("đ", "d"))
-    return "".join(c for c in text if unicodedata.category(c) != "Mn")
-
-
 def _span(text, pattern):
-    match = re.search(pattern, _plain(text), flags=re.I)
+    match = re.search(pattern, plain_text(text), flags=re.I)
     return text[match.start(1):match.end(1)].strip() if match else None
 
 
@@ -114,7 +108,7 @@ class FakeLLMClient:
     model_id = "fake-rules-v1"
 
     def generate(self, message, catalog, context):
-        text = _plain(message)
+        text = plain_text(message)
         pending = context.get("pending_intent")
         if re.search(r"\b(doi|sua|cap nhat)\b", text):
             intent = "update_order"
@@ -140,27 +134,29 @@ class FakeLLMClient:
         chunks = re.split(r"\s+và\s+|;|,\s*(?=\d+\s+(?:áo|giày|dép|nón|balo))", original_items, flags=re.I)
         colors = ["xanh navy", "trắng", "đen", "xám", "xanh", "đỏ", "vàng"]
         for chunk in chunks:
-            plain = _plain(chunk)
+            plain = plain_text(chunk)
             aliases = [alias for p in catalog for alias in [p["name"], *p.get("aliases", [])]
-                       if re.search(r"(?<!\w)" + re.escape(_plain(alias)) + r"(?!\w)", plain)]
+                       if re.search(r"(?<!\w)" + re.escape(plain_text(alias)) + r"(?!\w)", plain)]
             alias = max(aliases, key=len) if aliases else None
             if not alias and intent == "browse_catalog":
                 categories = {p.get("category", "") for p in catalog} - {""}
-                alias = next((c for c in sorted(categories) if re.search(r"\b" + re.escape(_plain(c)) + r"\b", plain)), None)
+                alias = next((c for c in sorted(categories) if re.search(r"\b" + re.escape(plain_text(c)) + r"\b", plain)), None)
             sku = _span(chunk, r"\b([A-Z][A-Z0-9]*-[A-Z0-9]+-[A-Z0-9]+)\b")
-            color = next((_span(chunk, r"\b(" + re.escape(_plain(c)) + r")\b") for c in colors
-                          if re.search(r"\b" + re.escape(_plain(c)) + r"\b", plain)), None)
+            color = next((_span(chunk, r"\b(" + re.escape(plain_text(c)) + r")\b") for c in colors
+                          if re.search(r"\b" + re.escape(plain_text(c)) + r"\b", plain)), None)
             size = _span(chunk, r"\bsize\s+([a-z0-9]+)\b")
+            if re.search(r"\b\d+(?:[.,]\d+)?\s*(?:inch|inches)\b", plain):
+                size = _span(chunk, r"\b(\d+(?:[.,]\d+)?\s*(?:inches|inch))\b")
             qty_text = _span(chunk, r"(?:\bchot|\bmua|\blay|\bdat|\bthanh|\bcon|\bso luong|\bcho\s+(?:em|anh|chi|toi|minh))\s*[:=]?\s+(-?\d+(?:[.,]\d+)?|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b")
             if qty_text is None:
                 qty_text = _span(chunk, r"^\s*(\d+)\s+")
-            qty = NUMBER_WORDS.get(_plain(qty_text or ""))
+            qty = NUMBER_WORDS.get(plain_text(qty_text or ""))
             if qty_text and qty is None:
                 try:
                     qty = int(qty_text)
                 except ValueError:
                     qty = 0
-            requested = _span(chunk, "(" + re.escape(_plain(alias)) + ")") if alias else None
+            requested = _span(chunk, "(" + re.escape(plain_text(alias)) + ")") if alias else None
             if intent == "browse_catalog" and not requested:
                 candidate = _span(chunk, r"(?:tim|xem|thong tin ve)\s+(.+?)(?=\s+(?:duoi|tren|tu|con hang)\b|[,;?]|$)")
                 if candidate and normalize(candidate) not in {"san pham", "catalog", "danh muc san pham", "hang"}:

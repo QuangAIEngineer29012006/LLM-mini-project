@@ -21,7 +21,7 @@ flowchart TD
 | API | `backend/main.py`, `models.py` | Hợp đồng HTTP, token phiên, validation và rate limit |
 | Nghiệp vụ | `backend/services.py`, `chat_service.py` | Điều phối đơn và hội thoại nhiều lượt |
 | Catalog chat | `backend/catalog_chat.py` | Tìm sản phẩm, truy vấn giá/tồn từ DB |
-| Prompt và provider | `src/prompts.py`, `llm_client.py` | Prompt `shop-assistant-v3`, Gemini REST và FakeLLM kiểm thử |
+| Prompt và provider | `src/prompts.py`, `llm_client.py` | Prompt `shop-assistant-v4`, Gemini REST và FakeLLM kiểm thử |
 | Parser | `src/parser.py` | Kiểm tra JSON schema và căn cứ dữ liệu trích xuất |
 | Database | `database/shop_db/` | Catalog, inventory, orders, conversations và audit |
 | Evaluation | `scripts/evaluate.py`, `review_evaluation.py` | Chạy case và hỗ trợ chấm rubric 0/1/2 |

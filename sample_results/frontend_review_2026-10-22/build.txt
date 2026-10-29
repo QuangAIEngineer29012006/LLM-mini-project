@@ -1,0 +1,13 @@
+
+> live-commerce-frontend@1.0.0 build
+> tsc -b && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 29 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.95 kB │ gzip:  0.51 kB
+dist/assets/index-B4rZuqkF.css   24.65 kB │ gzip:  6.18 kB
+dist/assets/index-IoDbBIfG.js   172.76 kB │ gzip: 55.05 kB
+✓ built in 454ms

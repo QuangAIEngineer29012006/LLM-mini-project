@@ -1,11 +1,13 @@
 from database.shop_db import catalog_service as catalog
+from database.shop_db.errors import SkuNotFound
 from database.shop_db.text_utils import normalize
+from src.parser import Extraction
 
 from .services import product_view
 from .variant_utils import attribute_value
-from src.parser import Extraction
 
 
+# Nhận diện một số câu hỏi catalog/giá/tồn rõ nghĩa bằng rule để không cần gọi LLM.
 def local_catalog_request(message):
     text = normalize(message)
     browse = {"cua hang ban gi", "cua hang ban nhung gi", "cua hang ban ban nhung gi", "shop ban gi", "shop ban nhung gi",
@@ -24,17 +26,22 @@ def local_catalog_request(message):
                                       "evidence": [message]})
 
 
+# So khớp thuộc tính đã chuẩn hóa; cho phép màu chung khớp tên màu chi tiết trong catalog.
 def _matches(value, actual, field=None):
     requested, known = attribute_value(value, field), attribute_value(actual, field)
     return not value or requested == known or (field == "color" and known.startswith(requested + " "))
 
 
+# Tìm sản phẩm theo tên/SKU và lọc biến thể theo danh mục, màu, size, giá, tồn kho.
 def find_products(conn, items, filters):
     found = {}
     for item in items or [{"requested_product": None, "sku": None, "variant": {}}]:
         query, sku = item.get("requested_product"), item.get("sku")
         if sku:
-            variant = catalog.get_variant(conn, sku)
+            try:
+                variant = catalog.get_variant(conn, sku)
+            except SkuNotFound:
+                continue
             products = [catalog.get_product(conn, variant["product_id"])]
         elif query:
             categories = [c for c in catalog.list_categories(conn) if normalize(c) == normalize(query)]
@@ -64,6 +71,7 @@ def find_products(conn, items, filters):
     return list(found.values())
 
 
+# Tạo câu trả lời và danh sách sản phẩm bằng giá/tồn thực tế lấy từ database.
 def catalog_reply(conn, items, filters, intent):
     products = find_products(conn, items, filters)
     if not products:
@@ -94,12 +102,14 @@ def catalog_reply(conn, items, filters, intent):
             "missing_fields": [], "order": None, "products": [product_view(p) for p in shown]}
 
 
+# Lưu ID sản phẩm và SKU vừa hiển thị để hiểu các câu hỏi tiếp theo của khách.
 def browsing_context(result):
     products = result.get("products", [])
     return {"catalog_product_ids": [p["product_id"] for p in products],
             "catalog_skus": [v["sku"] for p in products for v in p["variants"]][:40]}
 
 
+# Hiểu “mẫu này”, “mẫu đầu tiên” từ lịch sử xem hàng, chỉ chọn khi tham chiếu đủ rõ.
 def resolve_reference(conn, items, context, message):
     ids = context.get("catalog_product_ids", [])
     if not ids or not items or len(items) != 1:

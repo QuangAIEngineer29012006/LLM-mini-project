@@ -35,6 +35,7 @@ class ItemChange(StrictModel):
     quantity: Quantity | None = None
 
     @model_validator(mode="after")
+    # Bắt buộc yêu cầu sửa dòng hàng có ít nhất một trường sku hoặc quantity khác null.
     def require_change(self):
         if not self.model_fields_set or any(getattr(self, f) is None for f in self.model_fields_set):
             raise ValueError("Cần sku hoặc quantity có giá trị hợp lệ")

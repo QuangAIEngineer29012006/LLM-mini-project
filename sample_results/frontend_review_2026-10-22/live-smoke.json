@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-10-22T01:47:43.417975+00:00",
+  "model_id": "gemini-3.5-flash-lite",
+  "prompt_template_version": "shop-assistant-v3",
+  "intent": "check_price",
+  "route": "price_checked",
+  "interpretation_source": "gemini",
+  "latency_ms": 6038.86,
+  "input_tokens": 1993,
+  "output_tokens": 213,
+  "retry_count": 0,
+  "error_type": null
+}

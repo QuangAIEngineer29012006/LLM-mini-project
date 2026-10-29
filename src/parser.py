@@ -1,10 +1,12 @@
 import json
 import re
+import unicodedata
 from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints, ValidationError
 
 from backend.models import StrictModel
+from backend.variant_utils import size_value
 from database.shop_db.text_utils import normalize
 
 
@@ -81,7 +83,7 @@ NUMBER_WORDS = {"mot": 1, "hai": 2, "ba": 3, "bon": 4, "nam": 5, "sau": 6, "bay"
 
 
 def money_amounts(text):
-    matches = re.findall(r"(?<![a-z0-9])(\d+(?:[.,]\d+)*)\s*(trieu|tr|nghin|ngan|k)?\b", normalize_money(text))
+    matches = re.findall(r"(?<![a-z0-9])(\d+(?:[.,]\d+)*)\s*(trieu|tr|nghin|ngan|k)?\b", plain_text(text))
     amounts = set()
     for number, unit in matches:
         if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", number):
@@ -95,9 +97,32 @@ def money_amounts(text):
     return amounts
 
 
-def normalize_money(text):
-    import unicodedata
+def plain_text(text):
+    """Lowercase and strip Vietnamese accents but keep punctuation, unlike text_utils.normalize."""
     return "".join(c for c in unicodedata.normalize("NFD", text.lower().replace("đ", "d")) if unicodedata.category(c) != "Mn")
+
+
+def quantity_source(message, customer=None):
+    text = plain_text(message)
+    text = re.split(r"\b(?:ten|nguoi nhan|sdt|so dien thoai|giao ve|giao den|dia chi)\b", text)[0]
+    if customer:
+        for value in customer.model_dump().values():
+            if value:
+                text = text.replace(plain_text(value), " ")
+    text = re.sub(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+){2,}\b", " ", text)
+    text = re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:inches|inch|cm|mm|kg|g|ml)\b", " ", text)
+    text = re.sub(r"\bsize\s+[a-z0-9]+\b", " ", text)
+    text = re.sub(r"(?<!\w)-\d+(?:[.,]\d+)?|\b\d+[.,]\d+\b", " invalidquantity ", text)
+    return " " + normalize(text) + " "
+
+
+def discard_implicit_quantities(data, message):
+    source = quantity_source(message, data.customer)
+    explicit = " invalidquantity " in source or re.search(r"\b\d+\b", source) or any(" " + word + " " in source for word in NUMBER_WORDS)
+    if data.intent in {"create_order", "update_order"} and not explicit:
+        for item in data.items:
+            item.quantity = None
+    return data
 
 
 def validate_grounding(data, message):
@@ -106,11 +131,14 @@ def validate_grounding(data, message):
     def present(value):
         return value is None or (normalize(value) and " " + normalize(value) + " " in text)
     for item in data.items:
-        if not all(present(v) for v in (item.requested_product, item.sku, item.variant.color, item.variant.size)):
+        if not all(present(v) for v in (item.requested_product, item.sku, item.variant.color)):
             raise OutputError("ungrounded_output")
+        if item.variant.size and not present(item.variant.size):
+            if " " + size_value(item.variant.size) + " " not in " " + size_value(message) + " ":
+                raise OutputError("ungrounded_output")
         if item.quantity is not None:
             words = [w for w, n in NUMBER_WORDS.items() if n == item.quantity]
-            if not any(" " + q + " " in text for q in [str(item.quantity), *words]):
+            if not any(" " + q + " " in quantity_source(message, data.customer) for q in [str(item.quantity), *words]):
                 raise OutputError("ungrounded_output")
     if not all(present(v) for v in (data.customer.name, data.customer.address, data.order_reference)):
         raise OutputError("ungrounded_output")
