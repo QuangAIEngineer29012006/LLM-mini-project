@@ -1,0 +1,25 @@
+{
+  "index_format_version": "2.0",
+  "index_version": "1.1.0-rag-2.0",
+  "created_at_utc": "2026-10-29T07:28:58.728016+00:00",
+  "corpus_release": "1.1.0",
+  "corpus_manifest_path": "data_config/corpus_manifest_v1.1.json",
+  "corpus_manifest_sha256": "a87093b8e5481bf3427f09bb96f191e667b75ef6ba616c86d38b1a9b11d0973c",
+  "embedding_model": "gemini-embedding-001",
+  "embedding_dimensions": 3072,
+  "document_encoding": "RETRIEVAL_DOCUMENT",
+  "query_encoding": "RETRIEVAL_QUERY",
+  "normalization": "Gemini embedding values; cosine similarity computed at retrieval",
+  "metric": "cosine_similarity",
+  "chunk_strategy": "markdown_section_aware_word_split",
+  "chunk_max_chars": 900,
+  "chunk_overlap_chars": 120,
+  "document_count": 17,
+  "chunk_count": 86,
+  "access_level_chunk_counts": {
+    "public": 64,
+    "staff": 13,
+    "admin": 9
+  },
+  "index_sha256": "834bad325365c9d9bc34afe429871455b406c2155e4dc47172b9ef27a787033c"
+}
