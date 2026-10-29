@@ -14,10 +14,10 @@ export async function ensureSession() {
   await sessionRequest
 }
 
-export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}, sessionToken?: string): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
-  const token = localStorage.getItem('lc-session')
+  const token = sessionToken ?? localStorage.getItem('lc-session')
   if (token) headers.set('Authorization', `Bearer ${token}`)
   let response: Response
   try { response = await fetch(path, { ...init, headers }) }

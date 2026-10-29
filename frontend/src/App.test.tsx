@@ -189,4 +189,59 @@ describe('React integration regressions', () => {
     expect(screen.queryByRole('form', { name: 'Thông tin đặt hàng qua bot' })).toBeNull()
   })
 
+  it('shows knowledge status and citations, opens the source and links it to the product', async () => {
+    const backpack = { product_id: 6, name: 'Balo laptop', category: 'Phụ kiện', description: 'Balo', price_from: 520000, price_to: 520000, in_stock: true, variants: [{ sku: 'BAG-GRY-15', label: 'Xám / 15 inch', unit_price: 520000, stock: 4 }] }
+    handler = path => path === '/api/products' ? json({ products: [shirt, backpack] })
+      : path === '/api/chat' ? json({ reply: 'Balo được bảo hành 12 tháng.', route: 'knowledge', intent: 'knowledge_query', knowledge: { status: 'answered', answer: 'Balo được bảo hành 12 tháng.', missing_information: '', citations: [{ chunk_id: 'DOC-POL-WARRANTY@1.0#03', doc_id: 'DOC-POL-WARRANTY', source: 'data_config/corpus/policies/pol_bao_hanh.md', version: '1.0', title: 'Chính sách bảo hành', section: 'Bảo hành Balo laptop' }] } })
+      : path.startsWith('/api/knowledge/sources/') ? json({ chunk_id: 'DOC-POL-WARRANTY@1.0#03', doc_id: 'DOC-POL-WARRANTY', source: 'data_config/corpus/policies/pol_bao_hanh.md', version: '1.0', title: 'Chính sách bảo hành', section: 'Bảo hành Balo laptop', text: 'Thời hạn bảo hành 12 tháng.', skus: ['BAG-GRY-15'], product_ids: [6] })
+      : undefined
+    render(<App />); await ready()
+    fireEvent.click(screen.getByRole('button', { name: 'Chat với trợ lý' }))
+    fireEvent.change(screen.getByLabelText('Tin nhắn'), { target: { value: 'Balo laptop bảo hành bao lâu?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+    expect(await screen.findByText('Có trích dẫn nguồn')).toBeTruthy()
+    expect(screen.getByText('Tra cứu tài liệu')).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('list', { name: 'Nguồn trích dẫn' })).getByRole('button'))
+    let source = await screen.findByRole('dialog', { name: 'Nguồn trích dẫn' })
+    expect(await within(source).findByText('Thời hạn bảo hành 12 tháng.')).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nguồn trích dẫn' })).toBeNull())
+    expect(screen.getByRole('dialog', { name: 'Trợ lý mua sắm' })).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('list', { name: 'Nguồn trích dẫn' })).getByRole('button'))
+    source = await screen.findByRole('dialog', { name: 'Nguồn trích dẫn' })
+    fireEvent.click(await within(source).findByRole('button', { name: 'Xem BAG-GRY-15' }))
+    expect(await screen.findByRole('dialog', { name: 'Balo laptop' })).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(document.body.style.overflow).toBe('')
+  })
+
+  it('shows refusal states without citations', async () => {
+    handler = path => path === '/api/chat' ? json({ reply: 'Nội dung này thuộc tài liệu nội bộ.', route: 'knowledge', intent: 'knowledge_query', knowledge: { status: 'access_denied', answer: 'Nội dung này thuộc tài liệu nội bộ.', missing_information: 'Cần quyền admin.', citations: [] } }) : undefined
+    render(<App />); await ready()
+    fireEvent.click(screen.getByRole('button', { name: 'Chat với trợ lý' }))
+    fireEvent.change(screen.getByLabelText('Tin nhắn'), { target: { value: 'Phụ cấp ca đêm bao nhiêu?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+    expect(await screen.findByText('Không có quyền truy cập')).toBeTruthy()
+    expect(screen.queryByRole('list', { name: 'Nguồn trích dẫn' })).toBeNull()
+  })
+
+  it('opens a demo staff session with its own token and shows index status', async () => {
+    handler = (path, init) => {
+      if (path === '/api/session' && new Headers(init.headers).get('X-Demo-Role') === 'staff') return json({ token: 'staff-token', role: 'staff' })
+      if (path === '/api/admin/index') {
+        expect(new Headers(init.headers).get('Authorization')).toBe('Bearer staff-token')
+        return json({ role: 'staff', index: { ready: true, problem: null, index_id: '1.1.0-fake-143be753', corpus_release: '1.1.0', chunk_count: 86, chunks_by_access: { public: 64, staff: 13, admin: 9 }, embedding: { provider: 'fake', model: 'hashed-ngram-v1' }, generator: 'fake-extractive-v1', cache_entries: 0 }, corpus: { active_release: '1.1.0', synced_at: null, documents_by_access: { public: 12, staff: 3, admin: 0 } }, documents: [{ doc_id: 'DOC-INT-PROMO-RULES', title: 'Hạn mức hỗ trợ', doc_type: 'sop_internal', access_level: 'staff', version: '1.0', author: 'TV1' }], releases: null })
+      }
+      return undefined
+    }
+    history.replaceState(null, '', '/#admin')
+    render(<App />)
+    await screen.findByLabelText('Khóa demo')
+    fireEvent.change(screen.getByLabelText('Khóa demo'), { target: { value: 'staff-demo-key' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Mở phiên' }))
+    expect(await screen.findByText('1.1.0-fake-143be753')).toBeTruthy()
+    expect(screen.getByText('DOC-INT-PROMO-RULES')).toBeTruthy()
+    expect(localStorage.getItem('lc-session')).toBe('test-session')
+  })
 })

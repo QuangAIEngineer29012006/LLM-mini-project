@@ -2,12 +2,14 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, ensureSession, request } from './api'
 import { Dialog } from './Dialog'
 import { ChatPurchaseForm, type Purchase } from './ChatPurchaseForm'
+import { KnowledgeBlock, SourceDialog, type Knowledge } from './Knowledge'
+import { AdminPage } from './AdminPage'
 
 type Variant = { sku: string; label: string; unit_price: number; stock: number; color?: string; size?: string }
 type Product = { product_id: number; name: string; category: string; description: string; price_from: number; price_to: number; in_stock: boolean; variants: Variant[] }
 type Item = { item_id: string; sku: string; name: string; variant_label: string; quantity: number; unit_price: number; line_total: number; available_variants?: {sku: string; label: string}[] }
 type Order = { order_id: string; status: string; editable?: boolean; shipping?: {recipient_name: string; phone: string; address: string}; items: Item[]; total: number }
-type ChatMessage = { role: 'user' | 'assistant'; text: string; reply?: string; route?: string; intent?: string; missing_fields?: string[]; order?: Order; purchase?: Purchase; error?: string }
+type ChatMessage = { role: 'user' | 'assistant'; text: string; reply?: string; route?: string; intent?: string; missing_fields?: string[]; order?: Order; purchase?: Purchase; knowledge?: Knowledge; error?: string }
 
 const images: Record<string, string[]> = {
   'Áo': [
@@ -25,6 +27,8 @@ const images: Record<string, string[]> = {
 }
 const formatMoney = (value: number) => new Intl.NumberFormat('vi-VN').format(value) + '₫'
 const fieldLabels: Record<string, string> = { recipient_name: 'tên người nhận', phone: 'số điện thoại', address: 'địa chỉ', product: 'sản phẩm', quantity: 'số lượng', variant: 'màu/size', order_reference: 'mã đơn' }
+type Page = 'shop' | 'cart' | 'checkout' | 'orders' | 'admin'
+const pageFrom = (value: string): Page => (['cart', 'checkout', 'orders', 'admin'] as string[]).includes(value) ? value as Page : 'shop'
 const statusLabels: Record<string, string> = { pending_confirmation: 'Chờ xác nhận', confirmed: 'Đã xác nhận', cancelled: 'Đã hủy' }
 const imageFor = (product: Product) => {
   const name = product.name.toLocaleLowerCase('vi')
@@ -54,10 +58,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<Order | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
-  const [page, setPage] = useState<'shop' | 'cart' | 'checkout' | 'orders'>(() => {
-    const saved = location.hash.slice(1)
-    return saved === 'cart' || saved === 'checkout' || saved === 'orders' ? saved : 'shop'
-  })
+  const [page, setPage] = useState<Page>(() => pageFrom(location.hash.slice(1)))
   const [selected, setSelected] = useState<Product | null>(null)
   const [variant, setVariant] = useState<Variant | null>(null)
   const [quantity, setQuantity] = useState(1)
@@ -75,6 +76,7 @@ function App() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [shipping, setShipping] = useState({ recipient_name: '', phone: '', address: '' })
   const [activeOrder, setActiveOrder] = useState<Order | null>(null)
+  const [sourceId, setSourceId] = useState<string | null>(null)
   const mutation = useRef(false)
   const loadInProgress = useRef(false)
   const messagesEnd = useRef<HTMLDivElement>(null)
@@ -106,10 +108,7 @@ function App() {
   }
   useEffect(() => { void load() }, [])
   useEffect(() => {
-    const onHash = () => {
-      const value = location.hash.slice(1)
-      setPage(value === 'cart' || value === 'checkout' || value === 'orders' ? value : 'shop')
-    }
+    const onHash = () => setPage(pageFrom(location.hash.slice(1)))
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
@@ -192,7 +191,7 @@ function App() {
     setPendingChat(pending)
     try {
       const response = await request<ChatMessage>('/api/chat', { method: 'POST', headers: { 'Idempotency-Key': pending.key }, body: JSON.stringify({ message: text }) })
-      setMessages(prev => [...prev, { role: 'assistant', text: response.reply || response.text || '', route: response.route, intent: response.intent, missing_fields: response.missing_fields, order: response.order, purchase: response.purchase }])
+      setMessages(prev => [...prev, { role: 'assistant', text: response.reply || response.text || '', route: response.route, intent: response.intent, missing_fields: response.missing_fields, order: response.order, purchase: response.purchase, knowledge: response.knowledge }])
       setPendingChat(null)
       if (response.order) setActiveOrder(response.order)
       void request<Order>('/api/cart').then(setCart).catch(e => setError((e as Error).message))
@@ -200,6 +199,12 @@ function App() {
   }
 
   const sendChat = async (event: FormEvent) => { event.preventDefault(); await submitChatText(chatInput) }
+  const openProductFromSource = (productId: number | null, sku?: string) => {
+    const product = products.find(p => sku ? p.variants.some(v => v.sku === sku) : p.product_id === productId)
+    if (!product) { setError('Sản phẩm này hiện không có trong catalog đang bán.'); return }
+    setSourceId(null); setChatOpen(false); setPage('shop'); setSelected(product); setQuantity(1)
+    setVariant(product.variants.find(v => v.sku === sku) || product.variants.find(v => v.stock > 0) || product.variants[0])
+  }
   const activePurchaseIndex = messages.reduce((active, message, index) => {
     if (message.purchase) return index
     return message.intent === 'create_order' || (message.route && ['draft_created', 'order_updated', 'handoff', 'out_of_stock'].includes(message.route)) ? -1 : active
@@ -244,12 +249,15 @@ function App() {
 
     {page === 'orders' && <main className="inner-page wrap"><div className="inner-heading"><span className="eyebrow">YOUR ORDERS</span><h1>Đơn hàng</h1></div>{(orders.length || activeOrder) ? <div className="orders-layout"><div className="order-selector">{[...(activeOrder && !orders.some(o => o.order_id === activeOrder.order_id) ? [activeOrder] : []), ...orders].map(o => <button key={o.order_id} className={activeOrder?.order_id === o.order_id ? 'order-selected' : ''} onClick={() => { setActiveOrder(o); setOrderDrafts({}) }}><Icon name="order"/><span><b>{o.order_id}</b><small>{statusLabels[o.status] || o.status}</small></span><Icon name="arrow" size={16}/></button>)}</div>{activeOrder && <div className="order-detail"><div className="order-detail-head"><div><span className="eyebrow">ORDER DETAILS</span><h2>{activeOrder.order_id}</h2></div><span className="status-pill">{statusLabels[activeOrder.status] || activeOrder.status}</span></div>{activeOrder.items.map(i => { const draft = orderDrafts[i.item_id] || { sku: i.sku, quantity: i.quantity }; return <div className="order-line order-edit-line" key={i.item_id}><div className="order-edit-fields"><span>{i.name}<small>{i.variant_label}</small></span>{activeOrder.editable && <div className="order-edit-controls"><select aria-label="Phân loại" value={draft.sku} onChange={e => setOrderDrafts(current => ({...current,[i.item_id]:{...draft,sku:e.target.value}}))}>{(i.available_variants || [{sku:i.sku,label:i.variant_label}]).map(v => <option key={v.sku} value={v.sku}>{v.label}</option>)}</select><input aria-label="Số lượng" type="number" min="1" max="99" value={draft.quantity} onChange={e => setOrderDrafts(current => ({...current,[i.item_id]:{...draft,quantity:Math.max(1,Number(e.target.value))}}))}/><button className="save-edit" disabled={busy} onClick={() => void saveOrderItem(i)}>Lưu</button></div>}</div><b>{formatMoney(i.line_total)}</b></div>})}<div className="summary-total"><span>Tổng cộng</span><b>{formatMoney(activeOrder.total)}</b></div>{activeOrder.shipping && <div className="shipping-details"><b>Giao đến</b><span>{activeOrder.shipping.recipient_name} · {activeOrder.shipping.phone}</span><small>{activeOrder.shipping.address}</small></div>}<button className="text-link" onClick={() => void openOrders()}>Tải lại đơn hàng ↻</button></div>}</div> : <div className="empty-state"><span>▤</span><h3>Bạn chưa có đơn hàng nào</h3><p>Những món đồ bạn đặt sẽ xuất hiện ở đây.</p><button className="button button-dark" onClick={() => setPage('shop')}>Khám phá cửa hàng</button></div>}</main>}
 
-    <footer className="footer"><div className="wrap footer-inner"><button className="brand footer-brand" onClick={() => setPage('shop')}><span className="brand-mark">l.</span><span>live<span className="brand-light">commerce</span></span></button><span>Những lựa chọn tốt cho cuộc sống thường ngày.</span><span>© {new Date().getFullYear()} Live Commerce</span></div></footer>
+    {page === 'admin' && <AdminPage/>}
+
+    <footer className="footer"><div className="wrap footer-inner"><button className="brand footer-brand" onClick={() => setPage('shop')}><span className="brand-mark">l.</span><span>live<span className="brand-light">commerce</span></span></button><span>Những lựa chọn tốt cho cuộc sống thường ngày.</span><button className="text-link" onClick={() => setPage('admin')}>Nhân viên / Quản trị</button><span>© {new Date().getFullYear()} Live Commerce</span></div></footer>
     <button className="assistant-fab" onClick={() => setChatOpen(true)}><Icon name="spark"/><span>Trợ lý mua sắm</span><span className="fab-dot"/></button>
 
     {selected && <Dialog label={selected.name} backdrop="overlay" className="product-modal" onClose={() => setSelected(null)}><button className="modal-close" onClick={() => setSelected(null)} aria-label="Đóng"><Icon name="close"/></button><div className="modal-photo"><img src={imageFor(selected)} alt={selected.name}/><span className="image-badge">{selected.category.toUpperCase()}</span></div><div className="modal-details"><span className="eyebrow">{selected.category} · EVERYDAY EDIT</span><h2>{selected.name}</h2><p>{selected.description}</p><strong className="modal-price">{formatMoney(variant?.unit_price || selected.price_from)}</strong><label className="variant-label">Phân loại</label><div className="variant-list">{selected.variants.map(v => <button key={v.sku} className={`${variant?.sku === v.sku ? 'variant-selected' : ''} ${v.stock === 0 ? 'variant-sold' : ''}`} disabled={v.stock === 0} onClick={() => { setVariant(v); setQuantity(1) }}>{v.label}{v.stock === 0 && ' · Hết hàng'}</button>)}</div>{variant && <div className="stock-note">{variant.stock ? `Còn ${variant.stock} sản phẩm` : 'Tạm hết hàng'}</div>}<div className="add-row"><div className="quantity-control"><button onClick={() => setQuantity(Math.max(1,quantity-1))}>−</button><span>{quantity}</span><button onClick={() => setQuantity(Math.min(99,variant?.stock || 99,quantity+1))}>+</button></div><button className="button button-dark" disabled={!variant?.stock || busy} onClick={() => void addToCart()}>{busy ? 'Đang thêm...' : 'Thêm vào giỏ'} <Icon name="bag" size={17}/></button></div><div className="modal-promise">Ảnh minh họa · Giá và tồn kho được kiểm tra khi đặt hàng.</div></div></Dialog>}
 
-    {chatOpen && <Dialog label="Trợ lý mua sắm" backdrop="chat-backdrop" className="chat-panel" onClose={() => setChatOpen(false)}><div className="chat-head"><div className="assistant-avatar"><Icon name="spark"/></div><div><b>Trợ lý mua sắm</b><small><span className="online-dot"/> Hỏi sản phẩm và đơn hàng</small></div><button onClick={() => setChatOpen(false)} aria-label="Đóng chat"><Icon name="close"/></button></div><div className="chat-intro"><span className="eyebrow">LIVE COMMERCE ASSISTANT</span><h3>Mình có thể giúp gì cho bạn?</h3><p>Tìm sản phẩm, kiểm tra giá và tồn kho, hay bắt đầu đặt hàng.</p><div className="suggestions"><button onClick={() => setChatInput('Cửa hàng bán những gì?')}>Cửa hàng bán gì?</button><button onClick={() => setChatInput('Cho xem giày dưới 800k còn hàng')}>Tìm giày dưới 800k</button><button onClick={() => setChatInput('Đặt cho tôi balo laptop xám, 15inch')}>Đặt balo xám 15 inch</button></div></div><div className="chat-messages">{messages.map((m,i) => <div key={i} className={`message ${m.role === 'user' ? 'message-user' : ''}`}><span className="message-avatar">{m.role === 'assistant' ? 'l.' : 'bạn'}</span><div><p>{m.text}</p>{m.missing_fields?.length ? <small>Cần bổ sung: {m.missing_fields.map(field => fieldLabels[field] || field).join(', ')}</small> : null}{m.purchase && <ChatPurchaseForm purchase={m.purchase} missing={m.missing_fields || []} busy={busy} active={i === activePurchaseIndex} onSubmit={submitChatText}/>}{m.order && <div className="chat-order-summary"><strong>Đơn {m.order.order_id} · {statusLabels[m.order.status] || m.order.status}</strong>{m.order.items.map(item => <span key={item.item_id}>{item.name} · {item.variant_label} × {item.quantity}</span>)}<b>Tổng tiền sản phẩm: {formatMoney(m.order.total)}</b></div>}{m.order && <button className="message-order" onClick={() => { setActiveOrder(m.order!); setChatOpen(false); void openOrders(m.order!.order_id) }}>Xem đơn {m.order.order_id} →</button>}</div></div>)}{busy && <p role="status">Đang xử lý yêu cầu...</p>}<div ref={messagesEnd}/></div><form className="chat-compose" onSubmit={sendChat}><input aria-label="Tin nhắn" maxLength={500} value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Nhập câu hỏi của bạn..."/><button disabled={busy || !chatInput.trim()} aria-label="Gửi"><Icon name="arrow"/></button></form><div className="chat-footnote">Câu trả lời được hỗ trợ bởi trợ lý AI.</div></Dialog>}
+    {chatOpen && <Dialog label="Trợ lý mua sắm" backdrop="chat-backdrop" className="chat-panel" onClose={() => setChatOpen(false)}><div className="chat-head"><div className="assistant-avatar"><Icon name="spark"/></div><div><b>Trợ lý mua sắm</b><small><span className="online-dot"/> Hỏi sản phẩm và đơn hàng</small></div><button onClick={() => setChatOpen(false)} aria-label="Đóng chat"><Icon name="close"/></button></div><div className="chat-intro"><span className="eyebrow">LIVE COMMERCE ASSISTANT</span><h3>Mình có thể giúp gì cho bạn?</h3><p>Tìm sản phẩm, kiểm tra giá và tồn kho, hỏi chính sách đổi trả, bảo hành, hay bắt đầu đặt hàng.</p><div className="suggestions"><button onClick={() => setChatInput('Cửa hàng bán những gì?')}>Cửa hàng bán gì?</button><button onClick={() => setChatInput('Cho xem giày dưới 800k còn hàng')}>Tìm giày dưới 800k</button><button onClick={() => setChatInput('Đặt cho tôi balo laptop xám, 15inch')}>Đặt balo xám 15 inch</button><button onClick={() => setChatInput('Balo laptop bảo hành bao lâu?')}>Bảo hành balo</button><button onClick={() => setChatInput('Báo thiếu hàng sau khi nhận cần làm gì?')}>Báo thiếu hàng</button></div></div><div className="chat-messages">{messages.map((m,i) => <div key={i} className={`message ${m.role === 'user' ? 'message-user' : ''}`}><span className="message-avatar">{m.role === 'assistant' ? 'l.' : 'bạn'}</span><div>{m.route === 'knowledge' || m.knowledge ? <span className="route-tag">{m.route === 'knowledge' ? 'Tra cứu tài liệu' : 'Tài liệu + đơn hàng'}</span> : null}<p>{m.text}</p>{m.knowledge && <KnowledgeBlock knowledge={m.knowledge} onOpenSource={setSourceId}/>}{m.missing_fields?.length ? <small>Cần bổ sung: {m.missing_fields.map(field => fieldLabels[field] || field).join(', ')}</small> : null}{m.purchase && <ChatPurchaseForm purchase={m.purchase} missing={m.missing_fields || []} busy={busy} active={i === activePurchaseIndex} onSubmit={submitChatText}/>}{m.order && <div className="chat-order-summary"><strong>Đơn {m.order.order_id} · {statusLabels[m.order.status] || m.order.status}</strong>{m.order.items.map(item => <span key={item.item_id}>{item.name} · {item.variant_label} × {item.quantity}</span>)}<b>Tổng tiền sản phẩm: {formatMoney(m.order.total)}</b></div>}{m.order && <button className="message-order" onClick={() => { setActiveOrder(m.order!); setChatOpen(false); void openOrders(m.order!.order_id) }}>Xem đơn {m.order.order_id} →</button>}</div></div>)}{busy && <p role="status">Đang xử lý yêu cầu...</p>}<div ref={messagesEnd}/></div><form className="chat-compose" onSubmit={sendChat}><input aria-label="Tin nhắn" maxLength={500} value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Nhập câu hỏi của bạn..."/><button disabled={busy || !chatInput.trim()} aria-label="Gửi"><Icon name="arrow"/></button></form><div className="chat-footnote">Câu trả lời được hỗ trợ bởi trợ lý AI.</div></Dialog>}
+    {sourceId && <SourceDialog chunkId={sourceId} onClose={() => setSourceId(null)} onOpenProduct={openProductFromSource}/>}
   </div>
 }
 

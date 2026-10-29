@@ -12,19 +12,21 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
-from database.shop_db import catalog_service as catalog, order_service as orders
-from database.shop_db.audit_service import Ctx
+from database.shop_db import catalog_service as catalog, corpus_service, order_service as orders
+from database.shop_db.audit_service import Ctx, log_event
 from database.shop_db.db import connect, transaction
 from database.shop_db.errors import DataServiceError
 from src.llm_client import make_client
+from src.rag.index import IndexIntegrityError
+from src.rag.service import KnowledgeService
 
-from .chat_service import chat
+from .chat_service import chat, knowledge_view
 from .config import Settings
 from .errors import ApiProblem, database_problem
-from .models import CartItem, ChatRequest, Checkout, ItemChange, QuantityChange
+from .models import CartItem, ChatRequest, Checkout, ItemChange, KnowledgeRequest, QuantityChange, ReindexRequest
 from .services import (cart_order, cart_view, checkout, item_row, order_number,
                        order_view, owned_order, product_view, update_item)
-from .storage import authenticate, initialize, new_session, request_key
+from .storage import authenticate, demo_role, initialize, new_session, request_key
 
 
 class RateLimiter:
@@ -63,14 +65,18 @@ def create_app(settings=None, llm_client=None):
     settings = settings or Settings.from_env()
 
     @asynccontextmanager
-    # Chuẩn bị database và catalog mẫu trước khi ứng dụng bắt đầu nhận request.
+    # Chuẩn bị database, catalog và metadata corpus khớp với index RAG đang active.
     async def lifespan(app):
-        initialize(settings.db_path)
+        knowledge = app.state.knowledge
+        initialize(settings.db_path, knowledge.manifest_path)
+        with db() as conn:
+            knowledge.check_release(conn)
         yield
 
     app = FastAPI(title="Live Commerce Order Assistant", version="1.0.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.llm_client = llm_client or make_client(settings)
+    app.state.knowledge = KnowledgeService(settings, app.state.llm_client)
     limiter = RateLimiter()
 
     @app.middleware("http")
@@ -141,22 +147,30 @@ def create_app(settings=None, llm_client=None):
     def session_db(request):
         with db() as conn:
             session = authenticate(conn, request.headers.get("Authorization"))
-            ctx = Ctx("customer", session["owner_id"], request.state.request_id)
+            actor = "customer" if session["role"] == "customer" else "staff"
+            ctx = Ctx(actor, session["owner_id"], request.state.request_id)
             yield conn, session, ctx
 
+    # Chặn endpoint quản trị khi role của phiên không nằm trong danh sách cho phép.
+    def require_role(session, *roles):
+        if session["role"] not in roles:
+            raise ApiProblem(403, "forbidden", "Phiên hiện tại không có quyền dùng chức năng này.")
+
     @app.get("/api/health")
-    # Kiểm tra database và trả provider/model hiện tại mà không gọi Gemini.
+    # Kiểm tra database và trả provider/model, trạng thái index RAG mà không gọi Gemini.
     def health():
         with db() as conn:
             conn.execute("SELECT 1 FROM products LIMIT 1").fetchone()
-        return {"status": "ok", "llm_provider": settings.llm_provider, "model_id": app.state.llm_client.model_id}
+        return {"status": "ok", "llm_provider": settings.llm_provider, "model_id": app.state.llm_client.model_id,
+                "rag_ready": app.state.knowledge.ready}
 
     @app.post("/api/session", status_code=201)
-    # Tạo phiên mua sắm mới sau khi kiểm tra giới hạn tạo phiên theo IP.
+    # Tạo phiên mới; phiên staff/admin mô phỏng chỉ mở được khi gửi đúng khóa demo trong .env.
     def start_session(request: Request):
         limiter.check("session", _client_ip(request), settings.session_limit)
+        role = demo_role(settings, request.headers.get("X-Demo-Role"), request.headers.get("X-Demo-Key"))
         with db() as conn:
-            return new_session(conn, settings.session_ttl)
+            return new_session(conn, settings.session_ttl, role)
 
     @app.delete("/api/session")
     # Thu hồi token của phiên hiện tại để token đó không truy cập tiếp được.
@@ -244,7 +258,61 @@ def create_app(settings=None, llm_client=None):
         key = request_key(request.headers.get("Idempotency-Key"))
         with session_db(request) as (conn, session, ctx):
             limiter.check("chat", session["owner_id"], settings.chat_limit)
-            return chat(conn, ctx, session, body.message, app.state.llm_client, key)
+            return chat(conn, ctx, session, body.message, app.state.llm_client, key, app.state.knowledge)
+
+    @app.post("/api/knowledge")
+    # Hỏi đáp tài liệu thuần (chỉ đọc): quyền lấy từ phiên, không bao giờ từ body.
+    def knowledge_query(body: KnowledgeRequest, request: Request):
+        with session_db(request) as (conn, session, ctx):
+            limiter.check("chat", session["owner_id"], settings.chat_limit)
+            result = app.state.knowledge.answer(conn, body.question, session["role"])
+            with transaction(conn):
+                log_event(conn, ctx, "knowledge_query", details={
+                    "role": session["role"], "status": result["status"],
+                    "citations": [c["chunk_id"] for c in result["citations"]],
+                    "index_id": result["debug"].get("index_id")})
+            return {**knowledge_view(result, session["role"]), "request_id": ctx.request_id}
+
+    @app.get("/api/knowledge/sources/{chunk_id}")
+    # Mở đoạn tài liệu được trích dẫn; đoạn ngoài quyền và đoạn không tồn tại trả cùng một lỗi 404.
+    def knowledge_source(chunk_id: str, request: Request):
+        with session_db(request) as (conn, session, ctx):
+            chunk = app.state.knowledge.source(chunk_id, session["role"])
+            if chunk is None:
+                raise ApiProblem(404, "not_found", "Không tìm thấy đoạn tài liệu trong phạm vi được phép.")
+            return {"chunk_id": chunk.chunk_id, "doc_id": chunk.doc_id, "title": chunk.title, "section": chunk.section,
+                    "version": chunk.version, "source": chunk.source, "text": chunk.text.split("\n", 1)[-1],
+                    "skus": [s for s in chunk.skus if s in chunk.text] or chunk.skus, "product_ids": chunk.product_ids}
+
+    @app.get("/api/admin/index")
+    # Trạng thái index, release corpus và metadata nguồn cho staff/admin.
+    def admin_index(request: Request):
+        with session_db(request) as (conn, session, ctx):
+            require_role(session, "staff", "admin")
+            knowledge = app.state.knowledge
+            knowledge.check_release(conn)
+            return {"role": session["role"], "index": knowledge.status(), "corpus": corpus_service.corpus_status(conn),
+                    "documents": corpus_service.list_documents(conn, session["role"]),
+                    "releases": knowledge.releases() if session["role"] == "admin" else None}
+
+    @app.post("/api/admin/reindex")
+    # Build hoặc activate (kể cả rollback) index theo release; chỉ admin và luôn ghi audit.
+    def admin_reindex(body: ReindexRequest, request: Request):
+        with session_db(request) as (conn, session, ctx):
+            require_role(session, "admin")
+            knowledge = app.state.knowledge
+            try:
+                if body.action == "build":
+                    manifest = knowledge.build(body.release)
+                    outcome = {"index_id": manifest["index_id"], "chunk_count": manifest["chunk_count"]}
+                else:
+                    outcome = knowledge.activate(conn, body.release, session["owner_id"])
+            except IndexIntegrityError as err:
+                raise ApiProblem(409, "index_error", str(err)) from None
+            with transaction(conn):
+                log_event(conn, ctx, f"index_{body.action}", details={"release": body.release,
+                                                                      "index_id": outcome.get("index_id")})
+            return {"action": body.action, "release": body.release, "result": outcome}
 
     return app
 

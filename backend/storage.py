@@ -6,6 +6,7 @@ import time
 import uuid
 
 from database.shop_db import conversation_service as conversations
+from database.shop_db.corpus_seed import ensure_corpus_seeded
 from database.shop_db.db import connect, migrate, transaction
 from database.shop_db.seed import seed_catalog
 
@@ -18,7 +19,8 @@ CREATE TABLE IF NOT EXISTS api_sessions (
     owner_id TEXT NOT NULL UNIQUE,
     conversation_id TEXT NOT NULL REFERENCES conversations(id),
     cart_id INTEGER REFERENCES orders(id),
-    expires_at INTEGER NOT NULL
+    expires_at INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'staff', 'admin'))
 );
 CREATE TABLE IF NOT EXISTS api_receipts (
     owner_id TEXT NOT NULL,
@@ -31,31 +33,34 @@ CREATE TABLE IF NOT EXISTS api_receipts (
 """
 
 
-# Chạy migration, seed catalog nếu chưa có sản phẩm và tạo bảng phiên/chống gửi trùng.
-def initialize(path):
+# Chạy migration, seed catalog và metadata corpus nếu chưa có, rồi tạo bảng phiên/chống gửi trùng.
+def initialize(path, corpus_manifest=None):
     conn = connect(path)
     try:
         migrate(conn)
         with transaction(conn):
             if not conn.execute("SELECT 1 FROM products LIMIT 1").fetchone():
                 seed_catalog(conn)
+        ensure_corpus_seeded(conn, corpus_manifest)
         conn.executescript(SCHEMA)
+        if "role" not in {r["name"] for r in conn.execute("PRAGMA table_info(api_sessions)")}:
+            conn.execute("ALTER TABLE api_sessions ADD COLUMN role TEXT NOT NULL DEFAULT 'customer'")
     finally:
         conn.close()
 
 
-# Tạo token, chủ phiên và hội thoại mới; database chỉ lưu hash của token cùng hạn dùng.
-def new_session(conn, ttl):
+# Tạo token, chủ phiên và hội thoại mới; database chỉ lưu hash của token, hạn dùng và role mô phỏng.
+def new_session(conn, ttl, role="customer"):
     token = secrets.token_urlsafe(32)
     owner = uuid.uuid4().hex
     expiry = int(time.time()) + ttl
     with transaction(conn):
         conv = conversations.create_conversation(conn, owner)
         conn.execute(
-            "INSERT INTO api_sessions(token_hash, owner_id, conversation_id, expires_at) VALUES (?,?,?,?)",
-            (hashlib.sha256(token.encode()).hexdigest(), owner, conv["id"], expiry),
+            "INSERT INTO api_sessions(token_hash, owner_id, conversation_id, expires_at, role) VALUES (?,?,?,?,?)",
+            (hashlib.sha256(token.encode()).hexdigest(), owner, conv["id"], expiry, role),
         )
-    return {"token": token, "expires_at": expiry}
+    return {"token": token, "expires_at": expiry, "role": role}
 
 
 # Kiểm tra Bearer token và trả phiên tương ứng nếu token hợp lệ, chưa hết hạn.
@@ -68,6 +73,16 @@ def authenticate(conn, authorization):
     if row is None:
         raise ApiProblem(401, "auth", "Phiên đã hết hạn hoặc không hợp lệ. Hãy mở phiên mới.")
     return dict(row)
+
+
+# Xác định role mô phỏng: mặc định customer; staff/admin cần khóa demo khớp cấu hình (rỗng = tắt).
+def demo_role(settings, role, key):
+    if role in (None, "", "customer"):
+        return "customer"
+    expected = {"staff": settings.demo_staff_key, "admin": settings.demo_admin_key}.get(role)
+    if not expected or not key or not secrets.compare_digest(key, expected):
+        raise ApiProblem(403, "forbidden", "Không mở được phiên nhân viên/quản trị với khóa đã gửi.")
+    return role
 
 
 # Kiểm tra định dạng khóa Idempotency-Key dùng để nhận biết các request gửi lại.

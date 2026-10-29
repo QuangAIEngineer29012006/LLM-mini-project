@@ -1,0 +1,208 @@
+{
+  "snapshots": {
+    "1.0.0": {
+      "index_id": "1.0.0-fake-17a26f86",
+      "chunk_count": 85,
+      "chunks_by_access": {
+        "public": 63,
+        "staff": 13,
+        "admin": 9
+      },
+      "files": {
+        "vectors_public.npy": "c7e865947610da4243cf150e1df07d3e9962d687850d252ee62f7a39aaa088d0",
+        "vectors_staff.npy": "0b26e27250204324c49a2bce8d5b3b89df86b1706d15658bde0b76b3fb1c9478",
+        "vectors_admin.npy": "3753564ef8d02c42a8ab8d322e752fd093c499450c770f3e854b3a68f67423e0",
+        "chunks.jsonl": "17a26f86385d32e9a78658409a4a64d7379ca2b39517bb856cdd9590fd43dc04"
+      },
+      "matches_committed_bundle": true
+    },
+    "1.1.0": {
+      "index_id": "1.1.0-fake-143be753",
+      "chunk_count": 86,
+      "chunks_by_access": {
+        "public": 64,
+        "staff": 13,
+        "admin": 9
+      },
+      "files": {
+        "vectors_public.npy": "7b2d1887dfe0234e65707b19dc299a7fad4a80707e06e339e1eb477fa4b284ab",
+        "vectors_staff.npy": "0b26e27250204324c49a2bce8d5b3b89df86b1706d15658bde0b76b3fb1c9478",
+        "vectors_admin.npy": "3753564ef8d02c42a8ab8d322e752fd093c499450c770f3e854b3a68f67423e0",
+        "chunks.jsonl": "143be753bf6eaa7acdbe7c74dc789866db846407653859eb7f53c91c91bfcc3b"
+      },
+      "matches_committed_bundle": true
+    }
+  },
+  "diff_DOC-POL-RETURN": {
+    "added": [
+      {
+        "section": "Ngoại lệ nón lưỡi trai",
+        "chunk_id": "DOC-POL-RETURN@1.1#03"
+      }
+    ],
+    "removed": [],
+    "changed": [
+      {
+        "section": "Đổi size hoặc màu do đổi ý",
+        "old": "DOC-POL-RETURN@1.0#02",
+        "new": "DOC-POL-RETURN@1.1#02"
+      }
+    ],
+    "unchanged": [
+      "Báo thiếu hàng hoặc hư hỏng khi nhận",
+      "Hoàn tiền",
+      "Hủy và sửa đơn hàng",
+      "Lỗi nhà sản xuất hoặc giao sai sản phẩm",
+      "Phạm vi áp dụng",
+      "Trường hợp không áp dụng đổi trả"
+    ]
+  },
+  "steps": [
+    {
+      "step": "start on 1.0.0",
+      "index_id": "1.0.0-fake-17a26f86",
+      "index_release": "1.0.0",
+      "db_release": "1.0.0",
+      "ready": true,
+      "cache_entries_after_queries": 2,
+      "answers": [
+        {
+          "question": "Đổi size hoặc màu do đổi ý được hỗ trợ trong bao lâu?",
+          "status": "answered",
+          "answer": "Khách hàng có nhu cầu đổi sang kích cỡ hoặc màu sắc khác của cùng sản phẩm do chọn nhầm cỡ hoặc thay đổi ý định được hỗ trợ trong vòng 7 ngày kể từ ngày nhận hàng thành công, khi đáp ứng đồng thời các điều kiện sau. Biến thể muốn đổi sang phải đang mở bán và đáp ứng khả năng cung ứng thực tế trên hệ thống tại thời điểm xử lý đổi. Khách hàng thanh toán chi phí vận chuyển hai chiều cho yêu cầu đổi hàng xuất phát từ nhu cầu cá nhân.",
+          "citations": [
+            "DOC-POL-RETURN@1.0#02"
+          ]
+        },
+        {
+          "question": "Nón lưỡi trai CAP-NVY-F có được đổi do đổi ý không?",
+          "status": "answered",
+          "answer": "Chỉ giặt tay nhẹ nhàng Nón lưỡi trai bằng bàn chải lông mềm ở phần đai trán và vết bẩn cục bộ; tuyệt đối không giặt máy, không vắt xoắn hoặc đè vật nặng làm gãy cốt nhựa bên trong lưỡi trai. Mọi điều kiện đổi trả sản phẩm Nón lưỡi trai áp dụng theo phiên bản hiện hành của tài liệu chính sách DOC-POL-RETURN.",
+          "citations": [
+            "DOC-PRD-005@1.0#05"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "activate 1.1.0",
+      "index_id": "1.1.0-fake-143be753",
+      "index_release": "1.1.0",
+      "db_release": "1.1.0",
+      "ready": true,
+      "cache_entries_after_queries": 2,
+      "answers": [
+        {
+          "question": "Đổi size hoặc màu do đổi ý được hỗ trợ trong bao lâu?",
+          "status": "answered",
+          "answer": "Khách hàng có nhu cầu đổi sang kích cỡ hoặc màu sắc khác của cùng sản phẩm do chọn nhầm cỡ hoặc thay đổi ý định được hỗ trợ trong vòng 14 ngày kể từ ngày nhận hàng thành công, khi đáp ứng đồng thời các điều kiện sau. Biến thể muốn đổi sang phải đang mở bán và đáp ứng khả năng cung ứng thực tế trên hệ thống tại thời điểm xử lý đổi. Khách hàng thanh toán chi phí vận chuyển hai chiều cho yêu cầu đổi hàng xuất phát từ nhu cầu cá nhân.",
+          "citations": [
+            "DOC-POL-RETURN@1.1#02"
+          ]
+        },
+        {
+          "question": "Nón lưỡi trai CAP-NVY-F có được đổi do đổi ý không?",
+          "status": "answered",
+          "answer": "Nhằm đảm bảo tiêu chuẩn vệ sinh vùng đầu và giữ nguyên phom vành mũ cho khách mua mới, hai biến thể Nón lưỡi trai gồm CAP-NVY-F và CAP-BLK-F không áp dụng chính sách đổi hàng do đổi ý sau khi khách đã nhận hàng. Trường hợp sản phẩm CAP-NVY-F hoặc CAP-BLK-F có lỗi đường may, lỗi khóa điều chỉnh từ nhà sản xuất hoặc giao sai màu, khách hàng vẫn được đổi miễn phí theo mục lỗi nhà sản xuất bên dưới.",
+          "citations": [
+            "DOC-POL-RETURN@1.1#03"
+          ]
+        }
+      ],
+      "cache_entries_right_after_activate": 0
+    },
+    {
+      "step": "rollback to 1.0.0",
+      "index_id": "1.0.0-fake-17a26f86",
+      "index_release": "1.0.0",
+      "db_release": "1.0.0",
+      "ready": true,
+      "cache_entries_after_queries": 2,
+      "answers": [
+        {
+          "question": "Đổi size hoặc màu do đổi ý được hỗ trợ trong bao lâu?",
+          "status": "answered",
+          "answer": "Khách hàng có nhu cầu đổi sang kích cỡ hoặc màu sắc khác của cùng sản phẩm do chọn nhầm cỡ hoặc thay đổi ý định được hỗ trợ trong vòng 7 ngày kể từ ngày nhận hàng thành công, khi đáp ứng đồng thời các điều kiện sau. Biến thể muốn đổi sang phải đang mở bán và đáp ứng khả năng cung ứng thực tế trên hệ thống tại thời điểm xử lý đổi. Khách hàng thanh toán chi phí vận chuyển hai chiều cho yêu cầu đổi hàng xuất phát từ nhu cầu cá nhân.",
+          "citations": [
+            "DOC-POL-RETURN@1.0#02"
+          ]
+        },
+        {
+          "question": "Nón lưỡi trai CAP-NVY-F có được đổi do đổi ý không?",
+          "status": "answered",
+          "answer": "Chỉ giặt tay nhẹ nhàng Nón lưỡi trai bằng bàn chải lông mềm ở phần đai trán và vết bẩn cục bộ; tuyệt đối không giặt máy, không vắt xoắn hoặc đè vật nặng làm gãy cốt nhựa bên trong lưỡi trai. Mọi điều kiện đổi trả sản phẩm Nón lưỡi trai áp dụng theo phiên bản hiện hành của tài liệu chính sách DOC-POL-RETURN.",
+          "citations": [
+            "DOC-PRD-005@1.0#05"
+          ]
+        }
+      ],
+      "cache_entries_right_after_activate": 0
+    },
+    {
+      "step": "re-activate 1.1.0",
+      "index_id": "1.1.0-fake-143be753",
+      "index_release": "1.1.0",
+      "db_release": "1.1.0",
+      "ready": true,
+      "cache_entries_after_queries": 2,
+      "answers": [
+        {
+          "question": "Đổi size hoặc màu do đổi ý được hỗ trợ trong bao lâu?",
+          "status": "answered",
+          "answer": "Khách hàng có nhu cầu đổi sang kích cỡ hoặc màu sắc khác của cùng sản phẩm do chọn nhầm cỡ hoặc thay đổi ý định được hỗ trợ trong vòng 14 ngày kể từ ngày nhận hàng thành công, khi đáp ứng đồng thời các điều kiện sau. Biến thể muốn đổi sang phải đang mở bán và đáp ứng khả năng cung ứng thực tế trên hệ thống tại thời điểm xử lý đổi. Khách hàng thanh toán chi phí vận chuyển hai chiều cho yêu cầu đổi hàng xuất phát từ nhu cầu cá nhân.",
+          "citations": [
+            "DOC-POL-RETURN@1.1#02"
+          ]
+        },
+        {
+          "question": "Nón lưỡi trai CAP-NVY-F có được đổi do đổi ý không?",
+          "status": "answered",
+          "answer": "Nhằm đảm bảo tiêu chuẩn vệ sinh vùng đầu và giữ nguyên phom vành mũ cho khách mua mới, hai biến thể Nón lưỡi trai gồm CAP-NVY-F và CAP-BLK-F không áp dụng chính sách đổi hàng do đổi ý sau khi khách đã nhận hàng. Trường hợp sản phẩm CAP-NVY-F hoặc CAP-BLK-F có lỗi đường may, lỗi khóa điều chỉnh từ nhà sản xuất hoặc giao sai màu, khách hàng vẫn được đổi miễn phí theo mục lỗi nhà sản xuất bên dưới.",
+          "citations": [
+            "DOC-POL-RETURN@1.1#03"
+          ]
+        }
+      ],
+      "cache_entries_right_after_activate": 0
+    }
+  ],
+  "active_index_versions_of_DOC-POL-RETURN": [
+    "1.1"
+  ],
+  "customer_isolation": {
+    "internal_chunks_probed": 22,
+    "internal_ids_in_candidates_context_citations": [],
+    "internal_ids_in_customer_cache": []
+  },
+  "logs": {
+    "corpus_sync_events": [
+      {
+        "event_type": "sync_applied",
+        "actor_type": "system",
+        "corpus_release": "1.0.0"
+      },
+      {
+        "event_type": "sync_applied",
+        "actor_type": "admin",
+        "corpus_release": "1.1.0"
+      },
+      {
+        "event_type": "sync_applied",
+        "actor_type": "admin",
+        "corpus_release": "1.0.0"
+      },
+      {
+        "event_type": "sync_applied",
+        "actor_type": "admin",
+        "corpus_release": "1.1.0"
+      }
+    ],
+    "audit_actions": [
+      "index_activate",
+      "knowledge_query"
+    ],
+    "audit_contains_internal_text": false,
+    "audit_contains_demo_key": false,
+    "audit_contains_phone_number": false
+  }
+}

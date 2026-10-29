@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -44,3 +44,12 @@ class ItemChange(StrictModel):
 
 class ChatRequest(StrictModel):
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+
+
+class KnowledgeRequest(StrictModel):
+    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+
+
+class ReindexRequest(StrictModel):
+    action: Literal["build", "activate"]
+    release: Annotated[str, StringConstraints(pattern=r"^\d+\.\d+\.\d+$")]

@@ -11,7 +11,8 @@ from database.shop_db.text_utils import normalize
 
 
 Text = Annotated[str, StringConstraints(min_length=1, max_length=200)]
-INTENTS = Literal["browse_catalog", "create_order", "check_stock", "check_price", "update_order", "unknown_or_handoff"]
+INTENTS = Literal["browse_catalog", "create_order", "check_stock", "check_price", "update_order", "knowledge_query",
+                  "unknown_or_handoff"]
 
 
 class Variant(StrictModel):
@@ -49,6 +50,7 @@ class Extraction(StrictModel):
     requires_human_review: bool
     evidence: Annotated[list[Text], Field(max_length=10)]
     catalog_filters: CatalogFilters = Field(default_factory=CatalogFilters)
+    knowledge_question: Text | None = None
 
 
 class OutputError(Exception):
@@ -161,4 +163,7 @@ def validate_grounding(data, message):
         raise OutputError("ungrounded_output")
     if (data.items or any(data.customer.model_dump().values()) or data.order_reference) and not data.evidence:
         raise OutputError("missing_evidence")
+    if data.knowledge_question and not present(data.knowledge_question):
+        # Retrieval falls back to the customer's own message rather than a model-rewritten question.
+        data.knowledge_question = None
     return data

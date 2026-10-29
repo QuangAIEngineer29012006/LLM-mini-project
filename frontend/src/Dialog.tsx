@@ -1,5 +1,10 @@
 import { ReactNode, useEffect, useRef } from 'react'
 
+// Open dialogs, innermost last: only the top one reacts to Escape/Tab, and page scroll is restored
+// only when the last one closes (stacked dialogs may unmount in any order).
+const openDialogs: object[] = []
+let pageOverflow = ''
+
 export function Dialog({ label, backdrop, className, onClose, children }: {
   label: string; backdrop: string; className: string; onClose: () => void; children: ReactNode
 }) {
@@ -8,10 +13,13 @@ export function Dialog({ label, backdrop, className, onClose, children }: {
   close.current = onClose
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
-    const overflow = document.body.style.overflow
+    if (!openDialogs.length) pageOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     panel.current?.focus()
+    const token = {}
+    openDialogs.push(token)
     const handle = (event: KeyboardEvent) => {
+      if (openDialogs[openDialogs.length - 1] !== token) return
       if (event.key === 'Escape') { event.preventDefault(); close.current(); return }
       if (event.key !== 'Tab') return
       const focusable = Array.from(panel.current?.querySelectorAll<HTMLElement>(
@@ -27,7 +35,8 @@ export function Dialog({ label, backdrop, className, onClose, children }: {
     }
     document.addEventListener('keydown', handle)
     return () => {
-      document.body.style.overflow = overflow
+      openDialogs.splice(openDialogs.indexOf(token), 1)
+      if (!openDialogs.length) document.body.style.overflow = pageOverflow
       document.removeEventListener('keydown', handle)
       previous?.focus()
     }

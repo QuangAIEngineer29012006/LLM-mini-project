@@ -21,6 +21,12 @@ class Settings:
     request_limit: int = 120
     chat_limit: int = 10
     session_limit: int = 20
+    rag_embedding_provider: str = "fake"
+    rag_embedding_model: str = "gemini-embedding-001"
+    rag_embedding_dimension: int = 768
+    rag_index_pointer: str | None = None
+    demo_staff_key: str = ""
+    demo_admin_key: str = ""
 
     @classmethod
     # Đọc cấu hình từ .env/biến môi trường và kiểm tra key, timeout, retry cùng các giới hạn.
@@ -39,7 +45,17 @@ class Settings:
             request_limit=int(os.getenv("API_REQUESTS_PER_MINUTE", "120")),
             chat_limit=int(os.getenv("CHAT_REQUESTS_PER_MINUTE", "10")),
             session_limit=int(os.getenv("SESSION_REQUESTS_PER_MINUTE", "20")),
+            rag_embedding_provider=os.getenv("RAG_EMBEDDING_PROVIDER", "fake"),
+            rag_embedding_model=os.getenv("RAG_EMBEDDING_MODEL", "gemini-embedding-001"),
+            rag_embedding_dimension=int(os.getenv("RAG_EMBEDDING_DIMENSION", "768")),
+            rag_index_pointer=os.getenv("RAG_INDEX_POINTER") or None,
+            demo_staff_key=os.getenv("DEMO_STAFF_KEY", ""),
+            demo_admin_key=os.getenv("DEMO_ADMIN_KEY", ""),
         )
+        if settings.rag_embedding_provider not in {"fake", "gemini"}:
+            raise ValueError("RAG_EMBEDDING_PROVIDER phải là fake hoặc gemini")
+        if settings.rag_embedding_provider == "gemini" and not settings.api_key:
+            raise ValueError("RAG_EMBEDDING_PROVIDER=gemini cần GEMINI_API_KEY")
         if settings.llm_provider not in {"fake", "gemini"}:
             raise ValueError("LLM_PROVIDER phải là fake hoặc gemini")
         if settings.llm_provider == "gemini" and not settings.api_key:

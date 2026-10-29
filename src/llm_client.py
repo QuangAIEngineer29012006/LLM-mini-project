@@ -1,6 +1,7 @@
 import json
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -48,12 +49,15 @@ class GeminiLLMClient:
 
     def generate(self, message, catalog, context):
         system, prompt = build_prompt(message, catalog, context)
+        return self.complete(system, prompt, Extraction.model_json_schema())
+
+    def complete(self, system, prompt, schema):
         url = "https://generativelanguage.googleapis.com/v1beta/models/" + quote(self.model_id, safe="-") + ":generateContent"
         payload = {"systemInstruction": {"parts": [{"text": system}]},
                    "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                    "generationConfig": {"temperature": 0, "maxOutputTokens": 2048,
                                         "responseFormat": {"text": {"mimeType": "APPLICATION_JSON",
-                                                                    "schema": Extraction.model_json_schema()}}}}
+                                                                    "schema": schema}}}}
         for attempt in range(self.settings.llm_max_retries + 1):
             if self.budget:
                 try:
@@ -103,14 +107,45 @@ def _span(text, pattern):
     return text[match.start(1):match.end(1)].strip() if match else None
 
 
+KNOWLEDGE_CUES = re.compile(r"\b(bao hanh|doi tra|doi y|hoan tien|chat lieu|bao quan|giat|chinh sach|phi van chuyen|"
+                            r"phi ship|van chuyen|giao hang|thanh toan|tra gop|huy don|thieu hang|hu hong|ngap nuoc|"
+                            r"bang size|phu hop|tien luong|muc luong|bang luong|luong nhan vien|phu cap|ca truc|ca dem|sla|noi bo|han muc|uu dai|khuyen mai|"
+                            r"ma giam gia|quoc te|hoa toc|tich diem|vat|hoa don|sop|quy trinh)\b")
+ACTION_CUES = re.compile(r"\b(chot|mua|lay|dat|them|gia|con hang)\b")
+
+
+def _short_span(text):
+    text = text.strip()
+    return text if len(text) <= 200 else text[:200].rsplit(" ", 1)[0]
+
+
 class FakeLLMClient:
     """Small rule-based extractor for offline demos; it does not measure Gemini quality."""
     model_id = "fake-rules-v1"
 
     def generate(self, message, catalog, context):
+        if KNOWLEDGE_CUES.search(plain_text(message)):
+            clauses = [c.strip() for c in re.split(r"[,;.?!]|\s+(?:rồi|và)\s+", message) if c.strip()]
+            asks = [c for c in clauses if KNOWLEDGE_CUES.search(plain_text(c))]
+            acts = [c for c in clauses if c not in asks and ACTION_CUES.search(plain_text(c))]
+            question = _short_span(asks[0]) if asks else _short_span(message)
+            if acts:
+                result = json.loads(self._extract(message[message.index(acts[0]):], catalog, context).text)
+            else:
+                result = {"intent": "knowledge_query", "confidence": "high", "items": [],
+                          "customer": {"name": None, "phone": None, "address": None}, "order_reference": None,
+                          "missing_information": [], "requires_human_review": False,
+                          "evidence": [_short_span(message)]}
+            result["knowledge_question"] = question
+            return LLMResult(json.dumps(result, ensure_ascii=False))
+        return self._extract(message, catalog, context)
+
+    def _extract(self, message, catalog, context):
         text = plain_text(message)
         pending = context.get("pending_intent")
-        if re.search(r"\b(doi|sua|cap nhat)\b", text):
+        lowered = unicodedata.normalize("NFC", message.lower())
+        # "đôi" (a pair of shoes) and "đổi" (change) both strip to "doi"; only the accented "đôi" is unambiguous.
+        if re.search(r"\b(sua|cap nhat)\b", text) or (re.search(r"\bdoi\b", text) and "đôi" not in lowered):
             intent = "update_order"
         elif re.search(r"\b(ban (?:nhung )?gi|tham khao|catalog|cho.*xem|tim|tu van|gioi thieu)\b", text):
             intent = "browse_catalog"
@@ -118,7 +153,7 @@ class FakeLLMClient:
             intent = "check_price"
         elif re.search(r"\b(con|ton kho|het hang)\b", text):
             intent = "check_stock"
-        elif re.search(r"\b(chot|mua|lay|dat)\b|\bcho\s+(?:em|anh|chi|toi|minh)\s+(?:\d+|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b", text):
+        elif re.search(r"\b(chot|mua|lay|dat|them)\b|\bcho\s+(?:em|anh|chi|toi|minh)\s+(?:\d+|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b", text):
             intent = "create_order"
         elif re.search(r"\b(ban (?:nhung )?gi|tham khao|san pham|catalog|cho.*xem|tim|tu van|gioi thieu|mau nao|size nao|mau gi|thong tin)\b", text):
             intent = "browse_catalog"
@@ -147,7 +182,7 @@ class FakeLLMClient:
             size = _span(chunk, r"\bsize\s+([a-z0-9]+)\b")
             if re.search(r"\b\d+(?:[.,]\d+)?\s*(?:inch|inches)\b", plain):
                 size = _span(chunk, r"\b(\d+(?:[.,]\d+)?\s*(?:inches|inch))\b")
-            qty_text = _span(chunk, r"(?:\bchot|\bmua|\blay|\bdat|\bthanh|\bcon|\bso luong|\bcho\s+(?:em|anh|chi|toi|minh))\s*[:=]?\s+(-?\d+(?:[.,]\d+)?|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b")
+            qty_text = _span(chunk, r"(?:\bchot|\bmua|\blay|\bdat|\bthem|\bthanh|\bcon|\bso luong|\bcho\s+(?:em|anh|chi|toi|minh))\s*[:=]?\s+(-?\d+(?:[.,]\d+)?|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)\b")
             if qty_text is None:
                 qty_text = _span(chunk, r"^\s*(\d+)\s+")
             qty = NUMBER_WORDS.get(plain_text(qty_text or ""))

@@ -69,7 +69,7 @@ Khi `create_order` đã xác định duy nhất SKU nhưng còn thiếu số lư
 
 React hiển thị form trong chat; gửi form tạo một tin nhắn có số lượng, SKU và giao nhận do người dùng nhập, vẫn dùng `POST /api/chat` và `Idempotency-Key`. Backend kiểm tra lại toàn bộ dữ liệu; không tin giá/tồn từ UI. Đủ thông tin thì trả `draft_created` và `order`; chat hiển thị dòng hàng, tổng tiền và nút mở đúng đơn.
 
-`15inch` và `15 inch` được chuẩn hóa khi đối chiếu size. Kích thước, số trong SKU, điện thoại và địa chỉ không được dùng làm số lượng. Nếu model tự điền số lượng khi khách chưa nêu, server bỏ giá trị tự điền để hỏi lại; không tự tạo đơn với số lượng mặc định. Audit có `discarded_implicit_quantity` để nhận biết bước này. Prompt hiện tại: `shop-assistant-v4`.
+`15inch` và `15 inch` được chuẩn hóa khi đối chiếu size. Kích thước, số trong SKU, điện thoại và địa chỉ không được dùng làm số lượng. Nếu model tự điền số lượng khi khách chưa nêu, server bỏ giá trị tự điền để hỏi lại; không tự tạo đơn với số lượng mặc định. Audit có `discarded_implicit_quantity` để nhận biết bước này. Prompt hiện tại: `shop-assistant-v5`.
 
 ## Phản hồi lỗi và cấu hình request
 
@@ -80,3 +80,28 @@ React hiển thị form trong chat; gửi form tạo một tin nhắn có số l
 Mã thường gặp: 401 auth, 404 resource không có trong scope, 409 stock/state/idempotency, 413 body lớn hơn 16 KB, 422 validation, 429 rate limit, 503 DB tạm thời bận. Không phản hồi input/stack trace/provider body hoặc secret. `X-Request-ID` dùng đối chiếu audit; `Cache-Control: no-store` cho response.
 
 Mặc định: 120 request/phút/IP, 20 phiên mới/phút/IP, 10 chat/phút/phiên. 429 có `Retry-After: 60`. Bản demo chạy localhost; các giá trị được cấu hình trong `.env`.
+
+## Tra cứu tài liệu (RAG) và quản trị index
+
+**Role trong phiên.** `POST /api/session` mặc định tạo phiên `customer`. Gửi kèm `X-Demo-Role: staff|admin` và `X-Demo-Key: <DEMO_STAFF_KEY|DEMO_ADMIN_KEY>` để mở phiên mô phỏng; sai hoặc chưa cấu hình khóa → 403. Response có `role`. Role luôn lấy từ phiên, không bao giờ từ body.
+
+| Method | Path | Role | Mô tả |
+|---|---|---|---|
+| POST | `/api/knowledge` | mọi phiên | `{"question": "..."}` → contract bên dưới. Có rate limit như chat |
+| GET | `/api/knowledge/sources/{chunk_id}` | mọi phiên | Nội dung đoạn được trích, `skus`, `product_ids`. Chunk ngoài quyền và chunk không tồn tại đều trả 404 |
+| GET | `/api/admin/index` | staff, admin | Trạng thái index, release corpus trong DB, tài liệu role được xem; admin thấy thêm danh sách release |
+| POST | `/api/admin/reindex` | admin | `{"action": "build"\|"activate", "release": "1.1.0"}`. Rollback = activate release cũ. 409 `index_error` khi bundle hỏng hoặc chưa build |
+
+Contract trả lời kiến thức (cũng là khối `knowledge` trong response của `/api/chat`):
+
+```json
+{"status": "answered | insufficient_evidence | access_denied | handoff | error",
+ "answer": "Câu trả lời tiếng Việt có điều kiện cần thiết.",
+ "citations": [{"chunk_id": "DOC-POL-WARRANTY@1.0#03", "doc_id": "DOC-POL-WARRANTY", "source": "data_config/corpus/policies/pol_bao_hanh.md",
+                "version": "1.0", "title": "...", "section": "Bảo hành Balo laptop"}],
+ "missing_information": ""}
+```
+
+Phiên staff/admin nhận thêm `debug` (top-k retrieval với điểm/rank/mức quyền, chunk trong context, `index_id`, cache hit) để debug và evaluation; customer không nhận.
+
+**Trong chat.** Câu hỏi kiến thức trả `route: "knowledge"`, `intent: "knowledge_query"` và khối `knowledge`. Câu kết hợp (ví dụ hỏi bảo hành rồi chốt SKU) giữ `route` của luồng đặt hàng (`draft_created`, `ask_missing`…) và có thêm khối `knowledge`; `reply` ghép câu trả lời kiến thức với phản hồi đặt hàng. Kết quả RAG không làm thay đổi đơn, giá, tồn hay thanh toán.

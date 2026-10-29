@@ -215,8 +215,16 @@ def _update(conn, ctx, session, slots):
     return response("Đã cập nhật đơn nháp và kiểm tra lại tồn kho.", "order_updated", order=order_view(conn, updated))
 
 
-# Điều phối toàn bộ lượt chat: chống gửi trùng, gọi LLM, kiểm tra dữ liệu, xử lý đơn và ghi audit.
-def chat(conn, ctx, session, message, client, key):
+# Trả kết quả RAG theo contract cho client; thông tin debug retrieval chỉ dành cho staff/admin.
+def knowledge_view(result, role):
+    view = {k: result[k] for k in ("status", "answer", "citations", "missing_information")}
+    if role in {"staff", "admin"}:
+        view["debug"] = result["debug"]
+    return view
+
+
+# Điều phối toàn bộ lượt chat: chống gửi trùng, gọi LLM, tra tài liệu (chỉ đọc), xử lý đơn và ghi audit.
+def chat(conn, ctx, session, message, client, key, knowledge=None):
     start = time.monotonic()
     owner, cid = session["owner_id"], session["conversation_id"]
     cached = replay(conn, owner, "chat", key, message)
@@ -261,6 +269,16 @@ def chat(conn, ctx, session, message, client, key):
             else:
                 explanation = "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại."
             result = response(explanation + " Đơn hàng chưa thay đổi.", "failed_validation", error_type=err.code)
+    role = session.get("role", "customer")
+    answer = None
+    if data and (data.intent == "knowledge_query" or data.knowledge_question) and not data.requires_human_review:
+        # Retrieval and generation run before the write transaction; their output is text + citations only
+        # and is never passed to an order/stock function.
+        answer = (knowledge.answer(conn, data.knowledge_question or message, role) if knowledge
+                  else {"status": "error", "answer": "Chức năng tra cứu tài liệu chưa được bật.", "citations": [],
+                        "missing_information": "", "debug": {}})
+        meta.update(rag_status=answer["status"], rag_citations=[c["chunk_id"] for c in answer["citations"]],
+                    rag_index_id=answer["debug"].get("index_id"))
     with transaction(conn):
         active = conn.execute("SELECT 1 FROM api_sessions WHERE token_hash=? AND expires_at>?",
                               (session["token_hash"], int(time.time()))).fetchone()
@@ -276,6 +294,8 @@ def chat(conn, ctx, session, message, client, key):
         if data:
             if data.requires_human_review or data.confidence == "low" or data.intent == "unknown_or_handoff":
                 result = response("Chưa đủ căn cứ xử lý tự động. Vui lòng nêu sản phẩm và yêu cầu cụ thể hoặc nhờ nhân viên hỗ trợ.", "handoff")
+            elif data.intent == "knowledge_query":
+                result = response(answer["answer"], "knowledge", knowledge=knowledge_view(answer, role))
             else:
                 continuing = data.intent == conv["pending_intent"]
                 previous = slots if continuing else {}
@@ -303,6 +323,9 @@ def chat(conn, ctx, session, message, client, key):
                         slots = {**conv["context"], **saved}
                     else:
                         slots = {**conv["context"], **slots, **saved}
+                if answer:
+                    result["knowledge"] = knowledge_view(answer, role)
+                    result["reply"] = answer["answer"] + "\n\n" + result["reply"]
         route = result["route"]
         if route == "handoff":
             conversations.update_conversation(conn, cid, context={}, state="handoff", pending_intent=None)
@@ -310,7 +333,7 @@ def chat(conn, ctx, session, message, client, key):
             conversations.update_conversation(conn, cid, context={}, state="awaiting_confirmation", pending_intent=None,
                                               last_order_id=order_number(result["order"]["order_id"]))
         elif data and route != "failed_validation":
-            if data.intent in READ_INTENTS:
+            if data.intent in READ_INTENTS | {"knowledge_query"}:
                 pending = conv["pending_intent"] if conv["pending_intent"] in DRAFT_INTENTS else None
             else:
                 pending = data.intent
