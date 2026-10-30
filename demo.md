@@ -23,7 +23,7 @@ python -m database.shop_db.sku_sync_service --check --manifest data_config/corpu
 ## 2. Câu hỏi nhiều điều kiện (1,5 phút)
 
 - Gõ: **“Nón lưỡi trai đổi ý có đổi được không, còn nếu bị lỗi khóa thì sao?”**
-- Chỉ: câu trả lời giữ cả ngoại lệ (không đổi do đổi ý) lẫn điều kiện còn lại (vẫn đổi lỗi nhà sản xuất), trích `DOC-POL-RETURN@1.1#03`.
+- Chỉ: câu trả lời giữ cả ngoại lệ (không đổi do đổi ý) lẫn điều kiện còn lại (vẫn đổi lỗi nhà sản xuất), trích đoạn “Ngoại lệ nón lưỡi trai” của `DOC-POL-RETURN · v1.1`.
 
 ## 3. Đặt hàng vẫn dùng database, tồn kho, validation cũ (1,5 phút)
 
@@ -39,14 +39,15 @@ python -m database.shop_db.sku_sync_service --check --manifest data_config/corpu
 ## 5. No-evidence và access-denied (1,5 phút)
 
 - **“Cửa hàng có hỗ trợ trả góp không?”** → **Chưa đủ bằng chứng**, không citation, không tự suy ra “có” hay “không”.
-- **“Phụ cấp ca đêm bao nhiêu?”** (khách) → **Không có quyền truy cập**, không citation.
-- Footer → **Nhân viên / Quản trị** → mở phiên **admin** bằng khóa demo → hỏi lại cùng câu: trả lời 150.000 VND/ca, có citation `DOC-ADM-HR-POLICY`. Cùng câu hỏi, kết quả khác nhau theo role.
+- **“Hạn mức hỗ trợ phí vận chuyển nội bộ là bao nhiêu?”** (khách) → **Không có quyền truy cập**, không citation. Khách không được biết shop sẵn sàng bù phí ship đến mức nào.
+- Footer → **Nhân viên / Quản trị** → mở phiên **staff** bằng khóa demo → hỏi lại cùng câu: nhân viên cấp 1 được tự duyệt hỗ trợ phí gửi trả tối đa 30.000 VND/đơn, có citation `DOC-INT-PROMO-RULES`. Cùng câu hỏi, kết quả khác nhau theo role.
+- Dự phòng (tài liệu mức admin): **“Phụ cấp ca trực tối muộn của nhân viên là bao nhiêu?”** — khách và staff bị từ chối, admin nhận 150.000 VND/ca (`DOC-ADM-HR-POLICY`). Tài liệu ghi “ca trực kỹ thuật tối muộn”, không có chữ “ca đêm”, nên đừng hỏi “ca đêm”.
 
 ## 6. Metric, error trace, re-index (2,5 phút)
 
 - Trang admin, hỏi một câu: bảng **Retrieval** hiện rank, điểm (ghi rõ không phải độ chắc chắn), mức quyền, chunk nào vào context.
-- Mở [artifacts/evaluation_report.md](artifacts/evaluation_report.md): bảng metric, một lỗi tiêu biểu (P02 “không thích màu”: embedding fake không tìm ra đoạn đổi ý nên Gemini từ chối; Gemini embedding tìm ra ở rank 1 và trả lời đúng 14 ngày) và cải tiến có kiểm soát trên dev.
-- Re-index trên trang admin: hỏi khách **“Đổi size hoặc màu do đổi ý được hỗ trợ trong bao lâu?”** → 14 ngày (`@1.1`). Admin bấm **Activate 1.0.0** → hỏi lại → 7 ngày (`@1.0`), cache đã bị xóa. Bấm **Activate 1.1.0** để trả về. Chi tiết: [artifacts/reindex_report.md](artifacts/reindex_report.md).
+- Mở [artifacts/evaluation_report.md](artifacts/evaluation_report.md): bảng metric, một lỗi tiêu biểu (P02 “không thích màu”: embedding fake không tìm ra đoạn đổi ý nên Gemini từ chối; Gemini embedding tìm ra ở rank 1 và trả lời đúng 14 ngày), cải tiến có kiểm soát trên dev, và mục 3d so sánh trước/sau khi ghép retrieval của TV2.
+- Re-index trên trang admin: hỏi khách **“Đổi size hoặc màu do đổi ý được hỗ trợ trong bao lâu?”** → 14 ngày (`v1.1`). Admin bấm **Activate 1.0.0** → hỏi lại → 7 ngày (`v1.0`), cache đã bị xóa. Bấm **Activate 1.1.0** để trả về. Chi tiết: [artifacts/reindex_report.md](artifacts/reindex_report.md).
 
 ## Hỏi đáp dự phòng
 

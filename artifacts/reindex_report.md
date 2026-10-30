@@ -38,7 +38,7 @@ Câu kiểm chứng: “Đổi size hoặc màu do đổi ý được hỗ trợ
 
 Index active sau cùng chỉ chứa `DOC-POL-RETURN` version `1.1` (trường `active_index_versions_of_DOC-POL-RETURN` trong evidence). Hai version không bao giờ được nạp cùng lúc: mỗi bundle build từ đúng một manifest release.
 
-Câu kiểm chứng thứ hai (“Nón lưỡi trai CAP-NVY-F có được đổi do đổi ý không?”) ở 1.1.0 trích đúng section mới `@1.1#03`. Ở 1.0.0, khi chưa có ngoại lệ, bộ trả lời fake lại trích đoạn **cách giặt nón** (`DOC-PRD-005@1.0#05`) thay vì chính sách đổi trả chung. Đây là một near-miss của generator extractive, đã ghi trong [evaluation_report.md](evaluation_report.md) mục phân tích lỗi.
+Câu kiểm chứng thứ hai (“Nón lưỡi trai CAP-NVY-F có được đổi do đổi ý không?”) ở 1.1.0 trích đúng section mới `@1.1#03`. Ở 1.0.0, khi chưa có ngoại lệ, bộ trả lời fake lại trích đoạn **màu và mã biến thể của nón** (`DOC-PRD-005@1.0#02`) thay vì chính sách đổi trả chung. Đây là một near-miss của generator extractive, đã ghi trong [evaluation_report.md](evaluation_report.md) mục phân tích lỗi.
 
 ## 4. Activate, cache invalidation, rollback
 
@@ -70,6 +70,7 @@ Khóa demo, API key và nội dung context không được ghi vào log. Log ch�
 
 ## 7. Giới hạn
 
-- Kịch bản tự động chạy với embedding `fake` để tái lập được và không tốn quota. Bundle Gemini cho cả hai release cũng đã build (`artifacts/index/1.0.0-gemini`, `1.1.0-gemini`, cùng `chunks.jsonl` với bản fake). Nút Activate trên trang admin của app (đang chạy Gemini) chuyển con trỏ `artifacts/index_manifest.json` theo đúng quy trình ở mục 4; bundle Gemini không tái lập từng byte nếu Google đổi model.
+- Kịch bản tự động chạy với embedding `fake` để tái lập được và không tốn quota. Index Gemini (định dạng của TV2, `src/rag/gemini_index.py`) cũng đã build cho cả hai release (`artifacts/index/1.0.0-gemini`: 85 chunk, `1.1.0-gemini`: 86 chunk). Nút Activate trên trang admin của app (đang chạy Gemini) chuyển con trỏ `artifacts/index_manifest.json` theo đúng quy trình ở mục 4; test `tests/test_rag.py::GeminiIndexTests::test_activate_switches_release_and_rolls_back` chạy quy trình này trên hai index Gemini thật (embedding câu hỏi được giả lập, không gọi API). Index Gemini không tái lập từng byte nếu Google đổi model.
+- Chunk ID của index Gemini (`DOC-POL-RETURN:2`) không gắn version như bản fake; citation vẫn mang trường `version` riêng và được kiểm tra với release active.
 - Activate không có bước duyệt hai người; demo chỉ yêu cầu role admin.
 - Con trỏ index là file trên một máy; chạy nhiều process cần cơ chế đồng bộ khác.

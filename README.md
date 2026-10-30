@@ -49,19 +49,21 @@ Mở http://127.0.0.1:5173. Giữ hai cửa sổ chạy. Vite chuyển tiếp `/
 |---|---|
 | Website, API, SQLite catalog/tồn/đơn/audit, giỏ và checkout | Corpus 17 tài liệu (`data_config/`), manifest v1.0/v1.1, metadata và đối soát SKU (`database/shop_db/corpus_*`) |
 | Luồng chat đặt hàng: parse, schema, grounding, SKU, tồn, quyền, idempotency | Route `knowledge_query` và câu kết hợp (`backend/chat_service.py`), prompt `shop-assistant-v5` |
-| Timeout, retry hữu hạn, ngân sách gọi model, mock mode, xử lý lỗi | Ingestion, index bundle, retrieval lọc quyền, generation có citation (`src/rag/`) |
+| Timeout, retry hữu hạn, ngân sách gọi model, mock mode, xử lý lỗi | Ingestion, index Gemini và retrieval lọc quyền của TV2 (`src/rag/gemini_index.py`), generation có citation (`src/rag/`) |
 | | Role customer/staff/admin mô phỏng, trang staff/admin `#admin`, re-index/rollback, evaluation RAG (`artifacts/`) |
 
 ### Chạy
 
-Cấu hình chạy app là **Gemini embedding** (`gemini-embedding-001`). Index có sẵn trong `artifacts/` cho cả hai provider, mỗi provider một con trỏ active:
+Cấu hình chạy app là **Gemini embedding** (`gemini-embedding-001`, 3072 chiều) với index và `retrieve()` của TV2 (`src/rag/gemini_index.py`). Index có sẵn trong `artifacts/` cho cả hai provider, mỗi provider một con trỏ active:
 
-| Provider | Con trỏ active | Bundle |
+| Provider | Con trỏ active | Index |
 |---|---|---|
-| `gemini` (chính) | `artifacts/index_manifest.json` | `artifacts/index/1.1.0-gemini`, `1.0.0-gemini` |
-| `fake` (offline, test/CI) | `artifacts/index_manifest_fake.json` | `artifacts/index/1.1.0-fake`, `1.0.0-fake` |
+| `gemini` (chính) | `artifacts/index_manifest.json` | `artifacts/index/1.1.0-gemini`, `1.0.0-gemini` (`rag_index.json` + `index_manifest.json`, định dạng của TV2) |
+| `fake` (offline, test/CI) | `artifacts/index_manifest_fake.json` | `artifacts/index/1.1.0-fake`, `1.0.0-fake` (vector numpy theo mức quyền) |
 
-Build lại index (Gemini tốn lượt gọi embedding; gặp giới hạn mỗi phút thì tự chờ rồi thử lại; fake build lại ra đúng sha256 cũ):
+Kiểm tra nhanh index Gemini, không gọi API: `python scripts/check_rag.py`.
+
+Build lại index (Gemini tốn 85–86 lượt gọi embedding; gặp giới hạn mỗi phút thì tự chờ rồi thử lại; fake build lại ra đúng sha256 cũ):
 
 ```bash
 python scripts/build_index.py --provider gemini --activate
@@ -79,7 +81,7 @@ Biến trong `.env`:
 | `RAG_EMBEDDING_PROVIDER=gemini` / `fake` | Embedding. Chọn luôn con trỏ index tương ứng; không có index cho provider đó thì RAG báo `degraded` |
 | `DEMO_STAFF_KEY`, `DEMO_ADMIN_KEY` | Khóa mở phiên staff/admin mô phỏng ở trang `#admin`. Để trống = tắt |
 
-Ví dụ trong chat: “Balo laptop bảo hành bao lâu?”, “Báo thiếu hàng sau khi nhận cần làm gì?”, “Balo laptop bảo hành bao lâu, chốt 1 BAG-GRY-15, …” (kết hợp), “Phụ cấp ca đêm bao nhiêu?” (customer bị từ chối).
+Ví dụ trong chat: “Balo laptop bảo hành bao lâu?”, “Báo thiếu hàng sau khi nhận cần làm gì?”, “Balo laptop bảo hành bao lâu, chốt 1 BAG-GRY-15, …” (kết hợp), “Hạn mức hỗ trợ phí vận chuyển nội bộ là bao nhiêu?” (customer bị từ chối, staff được trả lời).
 
 ### Dữ liệu và quyền
 
@@ -101,7 +103,7 @@ Quyền được áp **trước** retrieval: mỗi role chỉ nạp vector của
 
 ### Giới hạn
 
-- Evaluation: bản offline (fake) trên dev/test; bản Gemini đầy đủ (router + embedding + trả lời) trên test đạt 13/17, Hit@3 1,00, câu trả lời có đúng bằng chứng 100%. Các case còn fail chủ yếu do nhãn case mơ hồ, chi tiết trong báo cáo.
+- Evaluation: bản offline (fake) trên dev/test; bản Gemini đầy đủ với index của TV2 trên test đạt 11/17, Hit@3 1,00, câu trả lời có đúng bằng chứng 90% (trước khi ghép nhánh `RAG`: 13/17). Hai case giảm do trích thêm đoạn “Từ chối bảo hành” ngoài nhãn, một case do đoạn bằng chứng sát dưới ngưỡng; chi tiết ở mục 3d của báo cáo.
 - Mỗi câu hỏi kiến thức tốn 3 lượt gọi Gemini (router, embedding, trả lời); nội dung tài liệu được gửi sang Google khi build index.
 - Router fake là regex: câu paraphrase như “muốn đổi màu khác được không” có thể bị hiểu thành sửa đơn.
 - Phát hiện `access_denied` dựa trên danh sách chủ đề nội bộ; câu hỏi nội bộ diễn đạt lạ có thể nhận `insufficient_evidence` thay vì `access_denied` (không lộ dữ liệu, chỉ sai nhãn trạng thái).

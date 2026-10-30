@@ -1,13 +1,14 @@
 # RAG evaluation report
 
-Ngày chạy: 29/10/2026. Bốn cấu hình, theo thứ tự đã chạy:
+Ngày chạy: 29–30/10/2026. Năm cấu hình, theo thứ tự đã chạy:
 
 | Cấu hình | Router + generator | Embedding / index | Dùng cho |
 |---|---|---|---|
 | A | fake | fake `hashed-ngram-v1`, `1.1.0-fake-143be753` | dev, cải tiến có kiểm soát, **test held-out** |
 | B | Gemini `gemini-3.5-flash-lite` | fake | test (mục 3b) |
 | C | fake | **Gemini `gemini-embedding-001`**, `1.1.0-gemini-143be753` | dev, so sánh riêng tác động embedding (mục 3c) |
-| D (**cấu hình chạy app**) | Gemini | Gemini | test (mục 3c) |
+| D | Gemini | Gemini, index `1.1.0-gemini-143be753` (768 chiều, chunker của TV3) | test (mục 3c), trước khi ghép nhánh `RAG` |
+| E (**cấu hình chạy app**) | Gemini | Gemini, index của TV2 `src/rag/gemini_index.py`, `1.1.0-gemini-834bad32` (3072 chiều) | dev chọn ngưỡng, test (mục 3d) |
 
 Prompt: `shop-assistant-v5` (router) và `rag-answer-v1` (trả lời).
 
@@ -120,6 +121,42 @@ Tổng Gemini: 6 supported, 0 partial, 0 unsupported, 0 contradicted.
 
 Claim review cấu hình D (trợ lý review, cần người xác nhận): 8 câu `answered` (E02, E03, E05, P02, P05, M02, M03, X03) đều **supported**, không partial/unsupported/contradicted. Đáng chú ý: P02 nêu đủ ba điều kiện đổi do đổi ý (tem mác, biến thể còn bán, khách chịu phí hai chiều); M03 nêu đủ “không bảo hành định kỳ” và “đổi lỗi NSX trong 15 ngày, cửa hàng chịu phí vận chuyển”.
 
+## 3d. Sau khi ghép retrieval của TV2 (nhánh `RAG`)
+
+**Thay đổi.** Nhánh `RAG` (TV2) có pipeline riêng: kiểm tra manifest/front matter/sha256, chia đoạn theo heading (tối đa 900 ký tự, chồng 120 ký tự), `gemini-embedding-001` 3072 chiều, lọc quyền trước khi xếp hạng, `retrieve()`. Sau khi ghép, index Gemini của app là index của TV2 (`artifacts/index/<release>-gemini/rag_index.json`); `KnowledgeService` gọi `retrieve()` của TV2 qua adapter `src/rag/gemini_bundle.py`, phần quyền, ngưỡng context, trả lời, kiểm tra citation, cache, re-index giữ nguyên. Index Gemini 768 chiều cũ (cấu hình C/D) đã gỡ; index fake giữ cho test/CI.
+
+**So sánh retrieval trước khi ghép** (cùng câu hỏi, chỉ đo xếp hạng, nhãn quy về `(doc_id, section)` vì chunk ID hai bên khác định dạng):
+
+| Split | Index | Hit@1 | Hit@3 | MRR@5 |
+|---|---|---|---|---|
+| dev (9 case có nhãn) | TV3 768 chiều | 0,89 | 1,00 | 0,94 |
+| dev | TV2 3072 chiều | 0,89 | 1,00 | 0,94 |
+| test (10 case có nhãn) | TV3 768 chiều | 0,80 | 1,00 | 0,90 |
+| test | TV2 3072 chiều | 0,80 | 1,00 | 0,88 |
+
+**Ngưỡng context** chọn lại trên dev vì thang điểm 3072 chiều khác: câu trả lời được có điểm hạng 1 thấp nhất 0,768 (M04), câu không bằng chứng cao nhất 0,671 (N01) → `MIN_SCORE = 0,72`.
+
+**Phát hiện câu hỏi nội bộ.** TV2 có hàm `is_restricted_topic` (so từ trong câu hỏi với tiêu đề tài liệu nội bộ). Chạy trên 30 case: bắt đủ 3 case access-denied nhưng **chặn nhầm 6 câu khách hỏi hợp lệ** (P03, M04, N01, N03, X01, X03, ví dụ “Shop có bán quần jean không?” trùng “bán”/“hàng” với tiêu đề SOP). Vì vậy app vẫn dùng danh sách chủ đề; hàm của TV2 chỉ còn dùng trong `scripts/check_rag.py`. Khi so sánh cũng phát hiện chủ đề `ho tro phi` của danh sách cũ chặn nhầm “Shop có hỗ trợ phí ship không?”, đã bỏ (câu hỏi hạn mức nội bộ vẫn bị chặn nhờ `han muc ho tro`, `noi bo`).
+
+**Kết quả test, cấu hình E** ([`evaluation_results_test_gemini_gemini-embedding_gemini-index.json`](evaluation_results_test_gemini_gemini-embedding_gemini-index.json)):
+
+| Chỉ số | Test D (trước ghép) | **Test E (sau ghép)** |
+|---|---|---|
+| Case pass | 13/17 | **11/17** |
+| Hit@3 / Recall@5 / MRR | 1,00 / 0,95 / 0,95 | 1,00 / 0,95 / 0,95 |
+| Evidence coverage (multi) | 1,00 | 0,75 |
+| Citation resolve / support | 1,00 / 0,90 | 1,00 / 0,727 |
+| Answer evidence span | 1,00 | 0,90 |
+| No-evidence an toàn / false refusal | 0,50† / 0,20 | 0,50† / 0,20 |
+| Access-denied / mixed / route / safety | 1,00 / 0,50 / 0,941 / 1,00 | 1,00 / 0,50 / 0,941 / 1,00 |
+
+**Hai case pass → fail, phân tích:**
+- **E02, X03** (bảo hành balo/giày): câu trả lời đúng (12 tháng, 6 tháng) và còn nêu điều kiện từ chối bảo hành, nhưng trích thêm `DOC-POL-WARRANTY:5` “Từ chối bảo hành”. Đoạn này không có trong nhãn relevant nên support rate tính là thừa. Trích dẫn này có căn cứ (đoạn 5 nằm trong context, điểm 0,760 > ngưỡng); nhãn test **không sửa sau khi xem kết quả**.
+- **M03** (fail ở cả D và E, nhưng nặng hơn ở E): đoạn “Lỗi nhà sản xuất” (`DOC-POL-RETURN:4`, chứa “15 ngày”) xếp hạng 5 với điểm 0,717, sát dưới ngưỡng 0,72, nên không vào context; câu trả lời chỉ còn vế “không bảo hành định kỳ”. Không hạ ngưỡng theo test.
+- P03, N03, X02 fail giống hệt cấu hình D (router/nhãn, lỗi 8).
+
+Kết luận: retrieval của TV2 xếp hạng ngang bản cũ; điểm case thấp hơn 2 do context rộng hơn (trích thêm đoạn hợp lệ ngoài nhãn) và một đoạn sát ngưỡng. Hướng cải tiến tiếp theo phải chọn trên dev: thêm tiêu đề tài liệu vào nội dung đoạn khi embed (bản cũ có), hoặc chọn ngưỡng theo khoảng cách với điểm hạng 1 thay vì ngưỡng tuyệt đối.
+
 ## 4. Claim review (thủ công, trên test held-out, fake)
 
 Do trợ lý review từng câu trả lời có status `answered`, đối chiếu với chunk được trích. **Cần người trong nhóm xác nhận lại trước khi nộp.**
@@ -165,6 +202,7 @@ Tổng: 4 supported, 4 partial, 0 unsupported, 0 contradicted, 0 unverifiable.
 - “Answer evidence span” là proxy theo chuỗi; claim review thủ công mới là đánh giá câu trả lời.
 - Router và generator fake không đại diện cho Gemini. Lần chạy Gemini chỉ có trên test split (một lần, cấu hình cuối); kết quả Gemini có thể dao động giữa các lần chạy dù `temperature=0`.
 - Gemini embedding không tái lập từng byte như bản fake và phụ thuộc phiên bản model phía Google; index fake được giữ song song cho test/CI.
+- Cấu hình C/D dùng index 768 chiều đã gỡ khi ghép nhánh `RAG`; file kết quả C/D giữ lại làm mốc so sánh nhưng không chạy lại được bằng code hiện tại.
 - Mỗi câu hỏi kiến thức ở cấu hình D tốn 3 lượt gọi (router, embedding, trả lời); nội dung tài liệu, kể cả tài liệu nội bộ mô phỏng, được gửi sang Google khi build index.
 
 ## 8. Chạy lại
@@ -183,8 +221,8 @@ Chạy với Gemini (tốn quota: mỗi case gọi router và có thể gọi th
 python scripts/evaluate_rag.py --split test --provider gemini --pace 5
 ```
 
-Cấu hình D (Gemini cho cả router, embedding, trả lời):
+Cấu hình E, cấu hình chạy app (Gemini cho router và trả lời, index Gemini của TV2):
 
 ```bash
-python scripts/evaluate_rag.py --split test --provider gemini --embedding gemini --pace 6 --timeout 25
+python scripts/evaluate_rag.py --split test --provider gemini --embedding gemini --pace 6 --timeout 25 --label gemini-index
 ```

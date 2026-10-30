@@ -10,9 +10,12 @@ from database.shop_db.corpus_errors import CorpusAccessDenied, CorpusNotFound
 from database.shop_db.sku_sync_service import REPO_ROOT, load_manifest, sync_from_manifest
 from database.shop_db.text_utils import normalize
 from src.llm_client import LLMError
+from src.quota import DailyBudget, DailyLimitReached
 
+from . import gemini_bundle
 from .answer import FakeGenerator, GeminiGenerator, document_frequency
-from .embedder import make_embedder
+from .embedder import FakeEmbedder
+from .gemini_index import EMBEDDING_MODEL, RAGError
 from .index import POINTER_PATHS, IndexBundle, IndexIntegrityError, build_bundle, load_active
 from .index import activate as activate_bundle
 from .retriever import retrieve, select_context
@@ -20,7 +23,7 @@ from .retriever import retrieve, select_context
 # Topics that only exist in internal documents. Detected from the question itself so the decision never
 # needs content the role may not read (D5). Value = the access level that may ask.
 RESTRICTED_TOPICS = {
-    "staff": ("noi bo", "sop", "han muc ho tro", "ho tro phi", "sla", "quy trinh xu ly khieu nai",
+    "staff": ("noi bo", "sop", "han muc ho tro", "sla", "quy trinh xu ly khieu nai",
               "van hanh ton kho", "duyet vuot han muc"),
     "admin": ("tien luong", "muc luong", "bang luong", "luong nhan vien", "phu cap", "ca truc", "ca dem", "nhan su", "re index", "reindex", "rollback",
               "release corpus", "quan tri corpus"),
@@ -49,8 +52,14 @@ class KnowledgeService:
 
     def __init__(self, settings, llm_client=None):
         self.settings = settings
-        self.embedder = make_embedder(settings)
-        self.pointer = Path(settings.rag_index_pointer or POINTER_PATHS[self.embedder.provider])
+        # gemini: the index built by gemini_index.py (ranked by its retrieve()); fake: an offline numpy bundle.
+        self.provider = settings.rag_embedding_provider
+        self.embedder = FakeEmbedder() if self.provider == "fake" else None
+        self.min_score = self.embedder.min_score if self.embedder else gemini_bundle.MIN_SCORE
+        # Query embeddings count against the same daily budget as the router and answer calls.
+        self.budget = (DailyBudget(settings.llm_usage_path, settings.llm_daily_limit)
+                       if self.embedder is None and settings.llm_usage_path else None)
+        self.pointer = Path(settings.rag_index_pointer or POINTER_PATHS[self.provider])
         self.index_root = self.pointer.parent / "index"
         self.llm = GeminiGenerator(llm_client) if hasattr(llm_client, "complete") else None
         self.cache = OrderedDict()
@@ -64,9 +73,12 @@ class KnowledgeService:
         with self.lock:
             self.cache.clear()
             try:
-                bundle = load_active(self.pointer)
-                if bundle.manifest["embedding"]["provider"] != self.embedder.provider:
-                    raise IndexIntegrityError("Index active được build bằng embedding khác cấu hình runtime")
+                if self.embedder is None:
+                    bundle = gemini_bundle.load_active(self.pointer)
+                else:
+                    bundle = load_active(self.pointer)
+                    if bundle.manifest["embedding"]["provider"] != self.embedder.provider:
+                        raise IndexIntegrityError("Index active được build bằng embedding khác cấu hình runtime")
                 self.bundle, self.problem = bundle, None
             except IndexIntegrityError as err:
                 self.bundle, self.problem = None, str(err)
@@ -95,7 +107,7 @@ class KnowledgeService:
         return {"ready": self.ready, "problem": self.problem, "index_id": manifest.get("index_id"),
                 "corpus_release": manifest.get("corpus_release"), "embedding": manifest.get("embedding"),
                 "chunk_count": manifest.get("chunk_count"), "chunks_by_access": manifest.get("chunks_by_access"),
-                "built_at": manifest.get("built_at"), "min_score": self.embedder.min_score, "generator": self.llm.name if self.llm else "fake-extractive-v1",
+                "built_at": manifest.get("built_at"), "min_score": self.min_score, "generator": self.llm.name if self.llm else "fake-extractive-v1",
                 "cache_entries": len(self.cache)}
 
     def _result(self, status, answer="", citations=(), missing="", **debug):
@@ -121,8 +133,8 @@ class KnowledgeService:
                 self.cache.move_to_end(key)
                 return {**self.cache[key], "debug": {**self.cache[key]["debug"], "cache": "hit"}}
         try:
-            hits = retrieve(self.bundle, self.embedder, question, role, k=5)
-            context = select_context(hits, question, self.embedder.min_score)
+            hits = self.search(question, role)
+            context = select_context(hits, question, self.min_score)
             retrieval = [h.debug() for h in hits]
             if not context:
                 result = self._result("insufficient_evidence", missing="Không có đoạn tài liệu đủ liên quan.",
@@ -134,12 +146,23 @@ class KnowledgeService:
                 result = self._finish(conn, role, generator.generate(question, context), context, retrieval)
         except LLMError as err:
             return self._result("error", missing=err.code)
+        except DailyLimitReached:
+            return self._result("error", missing="llm_daily_limit")
+        except RAGError:
+            return self._result("error", missing="embedding_failed")
         result["debug"].update(index_id=self.bundle.index_id, latency_ms=round((time.monotonic() - start) * 1000, 1))
         with self.lock:
             self.cache[key] = result
             while len(self.cache) > CACHE_SIZE:
                 self.cache.popitem(last=False)
         return result
+
+    def search(self, question, role, k=5):
+        if self.embedder is not None:
+            return retrieve(self.bundle, self.embedder, question, role, k=k)
+        if self.budget:
+            self.budget.reserve(EMBEDDING_MODEL)
+        return self.bundle.retrieve(question, role, k=k)
 
     def _finish(self, conn, role, generated, context, retrieval):
         by_id = {h.chunk.chunk_id: h.chunk for h in context}
@@ -174,16 +197,24 @@ class KnowledgeService:
         found = {}
         for path in sorted((REPO_ROOT / "data_config").glob("corpus_manifest_v*.json")):
             release = load_manifest(path)["corpus_release"]
-            bundle_dir = self.index_root / f"{release}-{self.embedder.provider}"
-            manifest = bundle_dir / "index_manifest.json"
-            found[release] = {"manifest_path": str(path.relative_to(REPO_ROOT)),
-                              "bundle": json.loads(manifest.read_text(encoding="utf-8")) if manifest.is_file() else None}
+            bundle_dir = self.index_root / f"{release}-{self.provider}"
+            if self.embedder is None:
+                bundle = gemini_bundle.summary(bundle_dir)
+            else:
+                manifest = bundle_dir / "index_manifest.json"
+                bundle = json.loads(manifest.read_text(encoding="utf-8")) if manifest.is_file() else None
+            found[release] = {"manifest_path": str(path.relative_to(REPO_ROOT)), "bundle": bundle}
         return found
 
     def build(self, release):
         info = self.releases().get(release)
         if info is None:
             raise IndexIntegrityError(f"Không có manifest cho release {release}")
+        if self.embedder is None:
+            try:
+                return gemini_bundle.build(REPO_ROOT / info["manifest_path"], self.index_root)
+            except RAGError as err:
+                raise IndexIntegrityError(str(err)) from None
         _, manifest = build_bundle(REPO_ROOT / info["manifest_path"], self.embedder, out_root=self.index_root)
         return manifest
 
@@ -192,10 +223,17 @@ class KnowledgeService:
         info = self.releases().get(release)
         if info is None or info["bundle"] is None:
             raise IndexIntegrityError(f"Release {release} chưa được build index")
-        bundle_dir = self.index_root / f"{release}-{self.embedder.provider}"
-        IndexBundle(bundle_dir)
-        sync_from_manifest(conn, REPO_ROOT / info["manifest_path"], actor_type="admin", actor_id=actor_id)
-        activate_bundle(bundle_dir, self.pointer)
+        bundle_dir = self.index_root / f"{release}-{self.provider}"
+        manifest_path = REPO_ROOT / info["manifest_path"]
+        if self.embedder is None:
+            gemini_bundle.GeminiIndex(bundle_dir, manifest_path)
+        else:
+            IndexBundle(bundle_dir)
+        sync_from_manifest(conn, manifest_path, actor_type="admin", actor_id=actor_id)
+        if self.embedder is None:
+            gemini_bundle.activate(bundle_dir, manifest_path, self.pointer)
+        else:
+            activate_bundle(bundle_dir, self.pointer)
         self.reload()
         self.check_release(conn)
         return self.status()

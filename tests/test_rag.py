@@ -1,7 +1,9 @@
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -9,6 +11,7 @@ from backend.config import Settings
 from backend.main import create_app
 from database.shop_db.corpus_seed import ensure_corpus_seeded
 from database.shop_db.db import connect
+from src.rag import gemini_bundle
 from src.rag.embedder import FakeEmbedder
 from src.rag.index import IndexBundle, IndexIntegrityError, activate, build_bundle, load_active
 from src.rag.retriever import retrieve
@@ -154,6 +157,59 @@ class ServiceTests(RagFixture):
         self.assertNotIn("cache", self.service.answer(self.conn, "Balo laptop bảo hành bao lâu?", "staff")["debug"])
         self.service.reload()
         self.assertEqual(len(self.service.cache), 0)
+
+
+class GeminiIndexTests(unittest.TestCase):
+    """The committed gemini_index.py indexes, served through KnowledgeService; embed_text is stubbed (no API call)."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.temp.name)
+        for release in ("1.0.0", "1.1.0"):
+            shutil.copytree(ROOT / f"artifacts/index/{release}-gemini", self.dir / f"artifacts/index/{release}-gemini")
+        self.pointer = self.dir / "artifacts/index_manifest.json"
+        gemini_bundle.activate(self.dir / "artifacts/index/1.1.0-gemini", V11, self.pointer)
+        settings = Settings(db_path=str(self.dir / "test.db"), rag_index_pointer=str(self.pointer),
+                            rag_embedding_provider="gemini", llm_usage_path=None)
+        self.conn = connect(settings.db_path)
+        ensure_corpus_seeded(self.conn, V11)
+        self.service = KnowledgeService(settings)
+        self.service.check_release(self.conn)
+        # The query "embeds" exactly like the change-of-mind section of the active release.
+        self.stub = patch("src.rag.gemini_index.embed_text", side_effect=lambda text, task: next(
+            r["embedding"] for r in self.service.bundle.rows if r["chunk_id"] == "DOC-POL-RETURN:2"))
+        self.stub.start()
+
+    def tearDown(self):
+        self.stub.stop()
+        self.conn.close()
+        self.temp.cleanup()
+
+    def test_answers_with_a_resolvable_citation_and_never_ranks_internal_chunks_for_customers(self):
+        self.assertTrue(self.service.ready, self.service.problem)
+        result = self.service.answer(self.conn, "Đổi size do đổi ý trong bao lâu?", "customer")
+        self.assertEqual(result["status"], "answered")
+        self.assertIn("14 ngày", result["answer"])
+        self.assertEqual(result["citations"][0]["chunk_id"], "DOC-POL-RETURN:2")
+        self.assertTrue(all(h["access_level"] == "public" for h in result["debug"]["retrieval"]))
+
+    def test_activate_switches_release_and_rolls_back(self):
+        question = "Đổi size do đổi ý trong bao lâu?"
+        self.service.answer(self.conn, question, "customer")
+        self.assertEqual(self.service.activate(self.conn, "1.0.0", "admin-1")["corpus_release"], "1.0.0")
+        self.assertEqual(len(self.service.cache), 0)
+        old = self.service.answer(self.conn, question, "customer")
+        self.assertIn("7 ngày", old["answer"])
+        self.assertEqual(old["citations"][0]["version"], "1.0")
+        self.service.activate(self.conn, "1.1.0", "admin-1")
+        self.assertIn("14 ngày", self.service.answer(self.conn, question, "customer")["answer"])
+
+    def test_pointer_that_does_not_match_the_index_stops_the_service(self):
+        pointer = json.loads(self.pointer.read_text(encoding="utf-8"))
+        self.pointer.write_text(json.dumps({**pointer, "index_sha256": "0" * 64}), encoding="utf-8")
+        self.service.reload()
+        self.assertFalse(self.service.ready)
+        self.assertEqual(self.service.answer(self.conn, "Đổi size do đổi ý trong bao lâu?", "customer")["status"], "error")
 
 
 class KnowledgeApiTests(RagFixture):

@@ -21,9 +21,12 @@ from backend.main import create_app  # noqa: E402
 from database.shop_db.db import connect  # noqa: E402
 from database.shop_db.text_utils import normalize  # noqa: E402
 from src.rag.answer import GeminiGenerator  # noqa: E402
-from src.rag.retriever import retrieve, select_context  # noqa: E402
+from src.rag.retriever import select_context  # noqa: E402
 
 KEYS = {"demo_staff_key": "eval-staff-key", "demo_admin_key": "eval-admin-key"}
+# Judgments are labelled on the v1.1 section chunks; comparing (doc_id, section) lets the same labels score both
+# the fake bundle and the gemini_index.py index, whose chunk ids differ.
+JUDGED_CHUNKS = ROOT / "artifacts/index/1.1.0-fake/chunks.jsonl"
 
 
 class PacedClient:
@@ -77,17 +80,17 @@ def run_case(client, app, case, relevant, db_path):
     citations = knowledge["citations"] if knowledge else []
     bundle = app.state.knowledge.bundle
     resolved = [c for c in citations if bundle.chunk(c["chunk_id"], ("public", "staff", "admin")) and (ROOT / c["source"]).is_file()]
-    supported = [c for c in citations if c["chunk_id"] in relevant]
+    supported = [c for c in citations if (c["doc_id"], c["section"]) in relevant]
 
     retrieval = None
     if relevant:
         query = case.get("retrieval_query", case["query"])
-        hits = retrieve(bundle, app.state.knowledge.embedder, query, case["role"], k=10)
-        ranked = [h.chunk.chunk_id for h in hits]
-        ranks = [ranked.index(cid) + 1 for cid in relevant if cid in ranked]
-        primary = [cid for cid, grade in relevant.items() if grade == 2]
-        context = [h.chunk.chunk_id for h in select_context(hits[:5], query, app.state.knowledge.embedder.min_score)]
-        retrieval = {"top5": ranked[:5], "hit@3": any(r <= 3 for r in ranks),
+        hits = app.state.knowledge.search(query, case["role"], k=10)
+        ranked = [(h.chunk.doc_id, h.chunk.section) for h in hits]
+        ranks = [ranked.index(key) + 1 for key in relevant if key in ranked]
+        primary = [key for key, grade in relevant.items() if grade == 2]
+        context = [(h.chunk.doc_id, h.chunk.section) for h in select_context(hits[:5], query, app.state.knowledge.min_score)]
+        retrieval = {"top5": [h.chunk.chunk_id for h in hits[:5]], "hit@3": any(r <= 3 for r in ranks),
                      "recall@5": sum(r <= 5 for r in ranks) / len(relevant),
                      "mrr": 1 / min(ranks) if ranks else 0.0,
                      "evidence_coverage": sum(cid in context for cid in primary) / len(primary)}
@@ -129,7 +132,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--split", choices=["dev", "test", "all"], default="dev")
     parser.add_argument("--provider", choices=["fake", "gemini"], default="fake", help="Router + answer generator")
-    parser.add_argument("--embedding", choices=["fake", "gemini"], default="fake", help="Index/embedding provider")
+    parser.add_argument("--embedding", choices=["fake", "gemini"], default="fake",
+                        help="fake: offline bundle; gemini: index của src/rag/gemini_index.py")
     parser.add_argument("--label", default="", help="Suffix for the output file, e.g. baseline / improved")
     parser.add_argument("--pace", type=float, default=0, help="Minimum seconds between provider calls (Gemini)")
     parser.add_argument("--timeout", type=float, help="Override LLM_TIMEOUT_SECONDS for this run (1-30)")
@@ -137,9 +141,10 @@ def main(argv=None):
                         help="Baseline: plain term-overlap sentence selection instead of IDF weighting")
     args = parser.parse_args(argv)
     cases = [c for c in load_jsonl(ROOT / "artifacts/evaluation_cases.jsonl") if args.split == "all" or c["split"] == args.split]
+    sections = {row["chunk_id"]: (row["doc_id"], row["section"]) for row in load_jsonl(JUDGED_CHUNKS)}
     judgments = {}
     for row in load_jsonl(ROOT / "artifacts/relevance_judgments.jsonl"):
-        judgments.setdefault(row["case_id"], {})[row["chunk_id"]] = row["relevance"]
+        judgments.setdefault(row["case_id"], {})[sections[row["chunk_id"]]] = row["relevance"]
     with tempfile.TemporaryDirectory() as folder:
         db_path = str(Path(folder) / "eval.db")
         base = Settings.from_env() if "gemini" in (args.provider, args.embedding) else Settings(db_path=db_path)

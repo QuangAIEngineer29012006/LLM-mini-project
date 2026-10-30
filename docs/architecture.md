@@ -38,16 +38,17 @@ flowchart TD
 | API | `backend/main.py`, `models.py`, `storage.py` | Endpoint, phiên + role mô phỏng, rate limit, idempotency |
 | Router + order | `backend/chat_service.py`, `services.py`, `catalog_chat.py` | Điều phối hội thoại, tách phần kiến thức và phần action |
 | LLM | `src/prompts.py`, `llm_client.py`, `parser.py` | Prompt `shop-assistant-v5` (thêm `knowledge_query`), Gemini/Fake, parse + grounding |
-| RAG | `src/rag/` | `chunker` → `embedder` → `index` (bundle) → `retriever` → `answer` (generator) → `service` (quyền, cache, citation, re-index) |
+| RAG, retrieval (TV2) | `src/rag/gemini_index.py` | Kiểm tra corpus, chia đoạn theo heading, embedding Gemini 3072 chiều, index theo release, lọc quyền rồi `retrieve()`. Hợp đồng: `docs/rag_api_contract.md` |
+| RAG, tích hợp (TV3) | `src/rag/`, `backend/knowledge_route.py` | `gemini_bundle` (adapter index TV2) hoặc bundle fake (`chunker`, `embedder`, `index`, `retriever`) → `answer` (generator) → `service` (quyền, ngưỡng context, cache, citation, re-index); `knowledge_route.answer_knowledge_question()` theo hợp đồng của TV2 |
 | Dữ liệu corpus | `data_config/`, `database/shop_db/corpus_*.py`, `sku_sync_service.py` | Tài liệu Markdown, manifest release, metadata, đối soát SKU |
 | Evaluation | `scripts/evaluate_rag.py`, `scripts/reindex_demo.py`, `artifacts/` | Metric RAG, kịch bản re-index |
 
 ## RAG pipeline
 
-1. **Ingestion** (`scripts/build_index.py`): đọc manifest, kiểm tra file/encoding/doc_id/metadata qua `validate_manifest`, chia mỗi section `##` thành một chunk mang `chunk_id`, `doc_id`, `version`, `source`, `access_level`, offset, SKU.
-2. **Index bundle** (`artifacts/index/<release>-<provider>/`): một ma trận vector cho mỗi mức quyền + `chunks.jsonl` + `index_manifest.json` (embedding, metric, chunk config, release, sha256). `artifacts/index_manifest.json` là con trỏ active. Nạp index sẽ kiểm tra sha256 và số dòng; lệch thì `degraded`.
-3. **Quyền trước retrieval**: role chỉ nạp ma trận của các mức được phép (customer → `public`). Câu hỏi thuộc chủ đề nội bộ trả `access_denied` trước khi tạo candidate.
-4. **Retrieval**: top-k cosine, cộng điểm khi câu hỏi nêu SKU, bảo đảm có chunk chính sách cho câu hỏi điều kiện nghiệp vụ. Điểm chỉ để xếp hạng/debug, không phải độ chắc chắn.
+1. **Ingestion** (`scripts/build_index.py`): đọc manifest, kiểm tra đường dẫn, BOM/UTF-8, sha256, kích thước, front matter. Gemini (TV2): chia theo heading, đoạn dài cắt theo từ (900 ký tự, chồng 120), chunk ID `DOC-…:n`. Fake: mỗi section `##` một chunk, ID `DOC-…@version#nn`, có offset và SKU.
+2. **Index** (`artifacts/index/<release>-<provider>/`). Gemini: `rag_index.json` (đoạn + vector) và `index_manifest.json` (model, số chiều, encoding, metric, chunk config, release, sha256 manifest corpus và index). Fake: một ma trận vector cho mỗi mức quyền + `chunks.jsonl` + `index_manifest.json`. Con trỏ active: `artifacts/index_manifest.json` (Gemini) hoặc `index_manifest_fake.json`. Index được kiểm tra một lần khi nạp (sha256, mapping, vector hợp lệ); lệch thì `degraded`.
+3. **Quyền trước retrieval**: chỉ đoạn thuộc mức quyền của role được đưa vào xếp hạng (customer → `public`). Câu hỏi thuộc chủ đề nội bộ trả `access_denied` trước khi tạo candidate.
+4. **Retrieval**: top-k cosine (Gemini: `retrieve()` của TV2; fake: numpy, cộng điểm khi câu hỏi nêu SKU). Sau đó lọc theo ngưỡng (Gemini 0,72, fake 0,12) và bảo đảm có chunk chính sách cho câu hỏi điều kiện nghiệp vụ. Điểm chỉ để xếp hạng/debug, không phải độ chắc chắn.
 5. **Generation**: Gemini với prompt tách data/instruction (`src/rag/prompts.py`), hoặc generator extractive offline. Output `{status, answer, citations, missing_information}`.
 6. **Kiểm tra citation**: mọi chunk được trích phải nằm trong context và resolve được tới file thật, đúng sha256, đúng version active; không thì hạ về `insufficient_evidence`/`error`.
 
@@ -57,4 +58,4 @@ flowchart TD
 
 ## Cấu hình
 
-`LLM_PROVIDER` (`fake`/`gemini`) chọn router và generator; `RAG_EMBEDDING_PROVIDER` (`fake`/`gemini`) chọn embedding và con trỏ index của provider đó (`artifacts/index_manifest.json` cho Gemini, `artifacts/index_manifest_fake.json` cho fake). Ngưỡng context đi theo model embedding (Gemini 0,65, fake 0,12) vì điểm cosine của hai model không cùng thang. Cấu hình chạy app: Gemini cho cả hai. Audit lưu route, intent, `rag_status`, chunk ID được trích, index_id, latency; không lưu nội dung context, khóa hay dữ liệu cá nhân.
+`LLM_PROVIDER` (`fake`/`gemini`) chọn router và generator; `RAG_EMBEDDING_PROVIDER` (`fake`/`gemini`) chọn embedding và con trỏ index của provider đó (`artifacts/index_manifest.json` cho index Gemini của TV2, `artifacts/index_manifest_fake.json` cho fake). Ngưỡng context đi theo model embedding (Gemini 0,72, fake 0,12) vì điểm cosine của hai model không cùng thang. Lượt embedding câu hỏi được tính vào ngân sách gọi model hằng ngày như router và trả lời. Cấu hình chạy app: Gemini cho cả hai. Audit lưu route, intent, `rag_status`, chunk ID được trích, index_id, latency; không lưu nội dung context, khóa hay dữ liệu cá nhân.
