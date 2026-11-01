@@ -46,6 +46,33 @@ class ChatPurchaseTests(BackendTestCase):
         self.assertEqual(result['order']['items'][0]['sku'], 'BAG-GRY-15')
         self.assertEqual(result['order']['total'], 520000)
 
+    def test_explicit_count_survives_model_returning_null(self):
+        for i, message in enumerate(('Balo laptop bảo hành bao lâu, chốt 1 BAG-GRY-15, ' + DELIVERY_TEXT,
+                                     'Lấy hai cái balo laptop xám 15inch, ' + DELIVERY_TEXT)):
+            with self.subTest(message=message):
+                payload = json.loads(FakeLLMClient().generate(message, [{'name': 'Balo laptop', 'aliases': []}], {}).text)
+                payload['intent'] = 'create_order'
+                payload['items'] = [{**payload['items'][0], 'quantity': None}]
+                self.app.state.llm_client = StubLLM(json.dumps(payload))
+                result = self.post_chat(message, key=f'recover-count-{i}').json()
+                self.assertEqual(result['route'], 'draft_created', result)
+                self.assertEqual(result['order']['items'][0]['sku'], 'BAG-GRY-15')
+                self.assertEqual(result['order']['items'][0]['quantity'], 1 if 'chốt 1' in message else 2)
+
+    def test_numbers_without_order_verb_or_unit_are_not_recovered_as_count(self):
+        for i, message in enumerate(('Đặt ba lô laptop xám 15inch, ' + DELIVERY_TEXT,
+                                     'Đặt balo laptop xám 15inch, Khách Demo, 0912345678, 12 Đường Mẫu, Quận 7')):
+            with self.subTest(message=message):
+                payload = json.loads(FakeLLMClient().generate(message, [{'name': 'Balo laptop', 'aliases': []}], {}).text)
+                payload['intent'] = 'create_order'
+                payload['items'] = [{'requested_product': 'laptop', 'sku': None,
+                                     'variant': {'color': 'xám', 'size': '15inch'}, 'quantity': None}]
+                self.app.state.llm_client = StubLLM(json.dumps(payload))
+                result = self.post_chat(message, key=f'no-count-{i}').json()
+                self.assertEqual(result['route'], 'ask_missing', result)
+                self.assertIn('quantity', result['missing_fields'])
+        self.assertEqual(self.scalar('SELECT COUNT(*) FROM orders'), 0)
+
     def test_measurement_is_not_quantity_even_when_separated_by_a_space(self):
         result = self.post_chat('Đặt balo laptop xám 15 inch, ' + DELIVERY_TEXT).json()
         self.assertEqual(result['route'], 'ask_missing', result)

@@ -13,7 +13,7 @@ from database.shop_db.errors import DataServiceError, OrderNotFound, SkuNotFound
 from database.shop_db.text_utils import normalize
 from database.shop_db.validation import normalize_items, validate_delivery
 from src.llm_client import LLMError
-from src.parser import OutputError, discard_implicit_quantities, parse_output, validate_grounding
+from src.parser import OutputError, discard_implicit_quantities, parse_output, recover_explicit_quantity, validate_grounding
 from src.prompts import PROMPT_VERSION
 
 from .errors import ApiProblem
@@ -255,8 +255,10 @@ def chat(conn, ctx, session, message, client, key, knowledge=None):
             meta.update(input_tokens=llm.input_tokens, output_tokens=llm.output_tokens, retry_count=llm.retry_count)
             parsed = parse_output(llm.text)
             quantities = [item.quantity for item in parsed.items]
-            data = validate_grounding(discard_implicit_quantities(parsed, message), message)
-            meta["discarded_implicit_quantity"] = quantities != [item.quantity for item in data.items]
+            kept = [item.quantity for item in discard_implicit_quantities(parsed, message).items]
+            data = validate_grounding(recover_explicit_quantity(parsed, message), message)
+            meta["discarded_implicit_quantity"] = quantities != kept
+            meta["recovered_explicit_quantity"] = kept != [item.quantity for item in data.items]
             meta["intent"] = data.intent
         except (OutputError, LLMError) as err:
             meta.update(validation_status="failed", error_type=err.code, retry_count=getattr(err, "retry_count", 0))

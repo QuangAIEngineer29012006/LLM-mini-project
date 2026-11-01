@@ -127,6 +127,26 @@ def discard_implicit_quantities(data, message):
     return data
 
 
+ORDER_VERB_COUNT = re.compile(r" (?:chot|dat|lay|mua|them) (\d+) ")
+UNIT_COUNT = re.compile(r" (\d+|" + "|".join(NUMBER_WORDS) + r") (?:cai|chiec|doi|san pham|sp) ")
+
+
+def recover_explicit_quantity(data, message):
+    """Fill a count the model left null when the message states exactly one, bound to an order verb or unit.
+
+    Number words count only before a unit, so 'ba lô' or 'áo nam' never become a quantity.
+    """
+    if data.intent != "create_order" or len(data.items) != 1 or data.items[0].quantity is not None:
+        return data
+    source = quantity_source(message, data.customer)
+    counts = {int(n) if n.isdigit() else NUMBER_WORDS[n]
+              for n in ORDER_VERB_COUNT.findall(source) + UNIT_COUNT.findall(source)}
+    digits = {int(n) for n in re.findall(r"\b\d+\b", source)}
+    if " invalidquantity " not in source and len(counts) == 1 and digits <= counts and 1 <= min(counts) <= 99:
+        data.items[0].quantity = counts.pop()
+    return data
+
+
 def validate_grounding(data, message):
     """Reject invented fields before merging them into server-owned conversation state."""
     text = " " + normalize(message) + " "

@@ -69,7 +69,7 @@ Khi `create_order` đã xác định duy nhất SKU nhưng còn thiếu số lư
 
 React hiển thị form trong chat; gửi form tạo một tin nhắn có số lượng, SKU và giao nhận do người dùng nhập, vẫn dùng `POST /api/chat` và `Idempotency-Key`. Backend kiểm tra lại toàn bộ dữ liệu; không tin giá/tồn từ UI. Đủ thông tin thì trả `draft_created` và `order`; chat hiển thị dòng hàng, tổng tiền và nút mở đúng đơn.
 
-`15inch` và `15 inch` được chuẩn hóa khi đối chiếu size. Kích thước, số trong SKU, điện thoại và địa chỉ không được dùng làm số lượng. Nếu model tự điền số lượng khi khách chưa nêu, server bỏ giá trị tự điền để hỏi lại; không tự tạo đơn với số lượng mặc định. Audit có `discarded_implicit_quantity` để nhận biết bước này. Prompt hiện tại: `shop-assistant-v5`.
+`15inch` và `15 inch` được chuẩn hóa khi đối chiếu size. Kích thước, số trong SKU, điện thoại và địa chỉ không được dùng làm số lượng. Nếu model tự điền số lượng khi khách chưa nêu, server bỏ giá trị tự điền để hỏi lại; không tự tạo đơn với số lượng mặc định. Audit có `discarded_implicit_quantity` để nhận biết bước này. Ngược lại, nếu khách ghi rõ một số lượng gắn với động từ đặt hàng hoặc đơn vị (“chốt 1 BAG-GRY-15”, “lấy hai cái”) mà model để `null`, server điền lại số đó và ghi `recovered_explicit_quantity`. Prompt hiện tại: `shop-assistant-v5`.
 
 ## Phản hồi lỗi và cấu hình request
 

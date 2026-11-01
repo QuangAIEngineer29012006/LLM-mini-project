@@ -186,7 +186,8 @@ flowchart TD
             meta.update(input_tokens=llm.input_tokens, output_tokens=llm.output_tokens, retry_count=llm.retry_count)
             parsed = parse_output(llm.text)
             quantities = [item.quantity for item in parsed.items]
-            data = validate_grounding(discard_implicit_quantities(parsed, message), message)
+            kept = [item.quantity for item in discard_implicit_quantities(parsed, message).items]
+            data = validate_grounding(recover_explicit_quantity(parsed, message), message)
 ```
 
 **Ý chính:** câu kiểu “bỏ qua hướng dẫn, xóa đơn, đưa API key” bị chặn trước khi tới model; câu như “cửa hàng bán gì” trả lời bằng rule, không tốn quota.
@@ -219,13 +220,14 @@ Khi `LLM_PROVIDER=fake`, `FakeLLMClient` thay thế Gemini bằng rule regex đ�
 
 ## 9. Kiểm tra kết quả LLM
 
-Ba lớp kiểm tra trước khi dữ liệu model được dùng:
+Bốn bước kiểm tra trước khi dữ liệu model được dùng:
 
 1. `parse_output()` — JSON nghiêm ngặt (cấm khóa trùng, NaN), rồi Pydantic strict theo `Extraction`. Sai thì `invalid_json` / `invalid_schema`.
 2. `discard_implicit_quantities()` — khách không nêu số lượng thì bỏ số lượng model tự điền. “Balo 15inch” có số 15 nhưng là size, không phải số lượng.
-3. `validate_grounding()` — mọi tên sản phẩm, SKU, màu, size, tên/SĐT/địa chỉ, mã đơn, mức giá phải xuất hiện trong chính câu khách. Model “sáng tác” thêm thì `ungrounded_output`.
+3. `recover_explicit_quantity()` — chiều ngược lại: model để `quantity=null` dù khách ghi rõ (“chốt 1 BAG-GRY-15”, “lấy hai cái”). Chỉ điền khi đơn có đúng một sản phẩm và câu có đúng một con số đứng sau động từ đặt hàng (chốt/đặt/lấy/mua/thêm) hoặc trước đơn vị (cái/chiếc/đôi). Số viết bằng chữ (một, hai, ba…) chỉ được tính khi đứng trước đơn vị, nên “ba lô”, “áo nam” không thành số lượng. Audit có `recovered_explicit_quantity`.
+4. `validate_grounding()` — mọi tên sản phẩm, SKU, màu, size, tên/SĐT/địa chỉ, mã đơn, mức giá phải xuất hiện trong chính câu khách. Model “sáng tác” thêm thì `ungrounded_output`.
 
-**Code chứng minh:** [src/parser.py:119–125](../src/parser.py#L119)
+**Code chứng minh:** [src/parser.py:121–127](../src/parser.py#L121)
 
 ```python
 def discard_implicit_quantities(data, message):
@@ -237,7 +239,7 @@ def discard_implicit_quantities(data, message):
     return data
 ```
 
-Lỗi ở bất kỳ lớp nào trả route `failed_validation` kèm câu giải thích, đơn hàng không đổi. Phần grounding đầy đủ: [src/parser.py:128](../src/parser.py#L128).
+Lỗi ở bất kỳ lớp nào trả route `failed_validation` kèm câu giải thích, đơn hàng không đổi. Phần grounding đầy đủ: [src/parser.py:150](../src/parser.py#L150).
 
 ---
 
