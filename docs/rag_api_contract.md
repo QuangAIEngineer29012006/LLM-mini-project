@@ -25,7 +25,7 @@ result = answer_knowledge_question(
     {
       "chunk_id": "DOC-PRD-001:3",
       "doc_id": "DOC-PRD-001",
-      "source": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.md",
+      "source": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.pdf",
       "version": "1.0"
     }
   ],
@@ -33,7 +33,7 @@ result = answer_knowledge_question(
 }
 ```
 
-`citations` only contains chunks retrieved for the supplied role. `access_denied` returns no restricted citation or document text. `RAGError` indicates the index/corpus is missing, stale, invalid, or a provider call failed; TV3 should convert it into the backend's standard error response.
+`citations` only contains chunks retrieved for the supplied role. Markdown and searchable PDF corpus sources are supported; PDF ingestion uses TV1's shared PDF-aware `database.shop_db.corpus_files` reader and requires `pypdf`. `access_denied` returns no restricted citation or document text. `RAGError` indicates the index/corpus is missing, stale, invalid, or a provider call failed; TV3 should convert it into the backend's standard error response.
 
 ## Retrieval-only interface
 

@@ -77,6 +77,20 @@ def _safe_document_path(source_path):
     return resolved
 
 
+def _read_pdf_document(path):
+    """Read PDF text and metadata through TV1's shared PDF-aware corpus reader."""
+    try:
+        from database.shop_db.corpus_files import parse_front_matter, read_normalized
+    except (ImportError, AttributeError) as error:
+        raise RAGError("PDF corpus requires TV1's PDF-aware corpus_files.py and pypdf dependency") from error
+    try:
+        text, source_bytes = read_normalized(path)
+        metadata = parse_front_matter(text)
+    except Exception as error:
+        raise RAGError(f"Corpus PDF is missing, invalid, or unreadable: {path.name}") from error
+    return text, source_bytes, metadata
+
+
 def _load_documents(manifest):
     documents = []
     seen_ids = set()
@@ -93,35 +107,38 @@ def _load_documents(manifest):
             raise RAGError(f"Invalid access level for {doc_id}")
 
         path = _safe_document_path(item["source_path"])
-        try:
-            raw = path.read_bytes()
-        except OSError as error:
-            raise RAGError(f"Corpus source file is missing: {item['source_path']}") from error
-        if raw.startswith(b"\xef\xbb\xbf"):
-            raise RAGError(f"Corpus source has a UTF-8 BOM: {item['source_path']}")
-        normalized = raw.replace(b"\r\n", b"\n")
-        try:
-            text = normalized.decode("utf-8", errors="strict")
-        except UnicodeDecodeError as error:
-            raise RAGError(f"Corpus source is not valid UTF-8: {item['source_path']}") from error
+        if path.suffix.lower() == ".pdf":
+            text, normalized, fm = _read_pdf_document(path)
+        else:
+            try:
+                raw = path.read_bytes()
+            except OSError as error:
+                raise RAGError(f"Corpus source file is missing: {item['source_path']}") from error
+            if raw.startswith(b"\xef\xbb\xbf"):
+                raise RAGError(f"Corpus source has a UTF-8 BOM: {item['source_path']}")
+            normalized = raw.replace(b"\r\n", b"\n")
+            try:
+                text = normalized.decode("utf-8", errors="strict")
+            except UnicodeDecodeError as error:
+                raise RAGError(f"Corpus source is not valid UTF-8: {item['source_path']}") from error
+            front_matter = re.match(r"\A---\s*\n(.*?)\n---\s*\n", text, flags=re.S)
+            if not front_matter:
+                raise RAGError(f"Corpus file is missing Markdown front matter: {item['source_path']}")
+            fm = {}
+            for line in front_matter.group(1).splitlines():
+                key, sep, value = line.partition(":")
+                if sep:
+                    fm[key.strip()] = value.strip()
+
         if not text.strip():
             raise RAGError(f"Corpus source is empty: {item['source_path']}")
         if hashlib.sha256(normalized).hexdigest() != item["content_sha256"]:
             raise RAGError(f"Corpus source hash differs from manifest: {item['source_path']}")
         if len(normalized) != item["file_size_bytes"]:
             raise RAGError(f"Corpus source size differs from manifest: {item['source_path']}")
-
-        front_matter = re.match(r"\A---\s*\n(.*?)\n---\s*\n", text, flags=re.S)
-        if not front_matter:
-            raise RAGError(f"Corpus file is missing Markdown front matter: {item['source_path']}")
-        fm = {}
-        for line in front_matter.group(1).splitlines():
-            key, sep, value = line.partition(":")
-            if sep:
-                fm[key.strip()] = value.strip()
         for key in ("doc_id", "title", "version", "access_level"):
             if fm.get(key) != str(item[key]):
-                raise RAGError(f"Manifest/front-matter {key} mismatch for {doc_id}")
+                raise RAGError(f"Manifest/source metadata {key} mismatch for {doc_id}")
 
         documents.append({
             "doc_id": doc_id,
@@ -171,9 +188,13 @@ def is_restricted_topic(question, role="customer"):
     return False
 
 
-def split_into_chunks(text):
-    """Keep Markdown sections intact; split oversized sections at word boundaries."""
+def split_into_chunks(text, source_is_pdf=False):
+    """Keep source sections intact; strip PDF metadata grids before chunking."""
     text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", text, count=1, flags=re.S)
+    if source_is_pdf:
+        first_heading = re.search(r"(?m)^#{1,6}\s+", text)
+        if first_heading:
+            text = text[first_heading.start():]
     sections = re.split(r"(?m)(?=^#{1,6}\s+)", text)
     chunks = []
     for section in sections:
@@ -204,7 +225,10 @@ def split_into_chunks(text):
 def _expected_chunks(documents):
     expected = []
     for document in documents:
-        for number, text in enumerate(split_into_chunks(document["text"]), start=1):
+        for number, text in enumerate(
+            split_into_chunks(document["text"], source_is_pdf=document["source"].lower().endswith(".pdf")),
+            start=1,
+        ):
             first_line = text.splitlines()[0].strip() if text else ""
             match = re.match(r"^#{1,6}\s+(.+)$", first_line)
             expected.append({
