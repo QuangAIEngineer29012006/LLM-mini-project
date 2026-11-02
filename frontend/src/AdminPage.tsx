@@ -58,6 +58,11 @@ export function AdminPage() {
   })
 
   if (!session) return <main className="inner-page wrap admin-page">
+    <div className="admin-nav-back">
+      <button className="back-link" onClick={() => { window.location.hash = 'shop' }}>
+        <span aria-hidden="true">←</span> Quay lại cửa hàng
+      </button>
+    </div>
     <div className="inner-heading"><span className="eyebrow">STAFF · ADMIN (DEMO)</span><h1>Kiến thức nội bộ</h1></div>
     <form className="checkout-form" onSubmit={signIn}>
       <h2>Mở phiên nhân viên mô phỏng</h2>
@@ -71,7 +76,18 @@ export function AdminPage() {
 
   const index = status?.index
   return <main className="inner-page wrap admin-page">
-    <div className="inner-heading admin-heading"><div><span className="eyebrow">PHIÊN {session.role.toUpperCase()}</span><h1>Kiến thức nội bộ</h1></div><button className="text-link" onClick={signOut}>Đóng phiên</button></div>
+    <div className="admin-nav-back">
+      <button className="back-link" onClick={() => { window.location.hash = 'shop' }}>
+        <span aria-hidden="true">←</span> Quay lại cửa hàng
+      </button>
+    </div>
+    <div className="inner-heading admin-heading">
+      <div>
+        <span className="eyebrow">PHIÊN {session.role.toUpperCase()}</span>
+        <h1>Kiến thức nội bộ</h1>
+      </div>
+      <button className="text-link" onClick={signOut}>Đóng phiên</button>
+    </div>
     {error && <div className="inline-error" role="alert">{error}</div>}
     <section className="admin-grid">
       <div className="admin-card">
@@ -89,13 +105,15 @@ export function AdminPage() {
       </div>
       {status?.releases && <div className="admin-card">
         <h2>Release và re-index</h2>
-        <table className="admin-table"><thead><tr><th>Release</th><th>Bundle</th><th></th></tr></thead><tbody>
-          {Object.entries(status.releases).map(([release, info]) => <tr key={release}>
-            <td>{release}{release === index?.corpus_release && <b> · active</b>}</td>
-            <td>{info.bundle ? `${info.bundle.index_id} (${info.bundle.chunk_count} chunk)` : 'Chưa build'}</td>
-            <td className="admin-actions"><button disabled={busy} onClick={() => void reindex('build', release)}>Build</button><button disabled={busy || !info.bundle || release === index?.corpus_release} onClick={() => void reindex('activate', release)}>Activate</button></td>
-          </tr>)}
-        </tbody></table>
+        <div className="table-responsive">
+          <table className="admin-table"><thead><tr><th>Release</th><th>Bundle</th><th>Thao tác</th></tr></thead><tbody>
+            {Object.entries(status.releases).map(([release, info]) => <tr key={release}>
+              <td>{release}{release === index?.corpus_release && <b> · active</b>}</td>
+              <td>{info.bundle ? `${info.bundle.index_id} (${info.bundle.chunk_count} chunk)` : 'Chưa build'}</td>
+              <td className="admin-actions"><button disabled={busy} onClick={() => void reindex('build', release)}>Build</button><button disabled={busy || !info.bundle || release === index?.corpus_release} onClick={() => void reindex('activate', release)}>Activate</button></td>
+            </tr>)}
+          </tbody></table>
+        </div>
         <p className="form-note">Activate đồng bộ metadata DB và con trỏ index cùng một lúc, rồi xóa cache. Rollback = activate release cũ.</p>
       </div>}
     </section>
@@ -105,16 +123,18 @@ export function AdminPage() {
       {answer && <div className="admin-answer">
         <p>{answer.answer}</p>
         <KnowledgeBlock knowledge={answer} onOpenSource={setSourceId}/>
-        {answer.debug?.retrieval && <table className="admin-table"><caption>Retrieval (điểm không phải độ chắc chắn){answer.debug.cache === 'hit' ? ' · từ cache' : ''}</caption><thead><tr><th>#</th><th>Điểm</th><th>Chunk</th><th>Quyền</th><th>Trong context</th></tr></thead><tbody>
+        {answer.debug?.retrieval && <div className="table-responsive"><table className="admin-table"><caption>Retrieval (điểm không phải độ chắc chắn){answer.debug.cache === 'hit' ? ' · từ cache' : ''}</caption><thead><tr><th>#</th><th>Điểm</th><th>Chunk</th><th>Quyền</th><th>Trong context</th></tr></thead><tbody>
           {answer.debug.retrieval.map(r => <tr key={r.chunk_id}><td>{r.rank}</td><td>{r.score.toFixed(3)}</td><td>{r.chunk_id}<small>{r.section}</small></td><td>{r.access_level}</td><td>{answer.debug?.context?.includes(r.chunk_id) ? 'Có' : '—'}</td></tr>)}
-        </tbody></table>}
+        </tbody></table></div>}
       </div>}
     </section>
     {status && <section className="admin-card">
       <h2>Tài liệu được phép xem ({status.documents.length})</h2>
-      <table className="admin-table"><thead><tr><th>Doc ID</th><th>Tiêu đề</th><th>Loại</th><th>Quyền</th><th>Phiên bản</th></tr></thead><tbody>
-        {status.documents.map(d => <tr key={d.doc_id}><td>{d.doc_id}</td><td>{d.title}</td><td>{d.doc_type}</td><td>{d.access_level}</td><td>{d.version}</td></tr>)}
-      </tbody></table>
+      <div className="table-responsive">
+        <table className="admin-table"><thead><tr><th>Doc ID</th><th>Tiêu đề</th><th>Loại</th><th>Quyền</th><th>Phiên bản</th></tr></thead><tbody>
+          {status.documents.map(d => <tr key={d.doc_id}><td>{d.doc_id}</td><td>{d.title}</td><td>{d.doc_type}</td><td>{d.access_level}</td><td>{d.version}</td></tr>)}
+        </tbody></table>
+      </div>
     </section>}
     {sourceId && <SourceDialog chunkId={sourceId} token={session.token} onClose={() => setSourceId(null)}/>}
   </main>
