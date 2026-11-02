@@ -136,7 +136,7 @@ def main(argv=None):
                         help="fake: offline bundle; gemini: index của src/rag/gemini_index.py")
     parser.add_argument("--label", default="", help="Suffix for the output file, e.g. baseline / improved")
     parser.add_argument("--pace", type=float, default=0, help="Minimum seconds between provider calls (Gemini)")
-    parser.add_argument("--timeout", type=float, help="Override LLM_TIMEOUT_SECONDS for this run (1-30)")
+    parser.add_argument("--timeout", type=float, help="Override LLM_TIMEOUT_SECONDS for this run (1-120)")
     parser.add_argument("--unweighted", action="store_true",
                         help="Baseline: plain term-overlap sentence selection instead of IDF weighting")
     args = parser.parse_args(argv)

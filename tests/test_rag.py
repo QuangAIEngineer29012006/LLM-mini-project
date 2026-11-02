@@ -12,6 +12,7 @@ from backend.main import create_app
 from database.shop_db.corpus_seed import ensure_corpus_seeded
 from database.shop_db.db import connect
 from src.rag import gemini_bundle
+from src.rag.corpus_source import release_db, unwrap
 from src.rag.embedder import FakeEmbedder
 from src.rag.index import IndexBundle, IndexIntegrityError, activate, build_bundle, load_active
 from src.rag.retriever import retrieve
@@ -24,12 +25,17 @@ V11 = ROOT / "data_config/corpus_manifest_v1.1.json"
 KEYS = {"demo_staff_key": "staff-demo-key", "demo_admin_key": "admin-demo-key"}
 
 
+def fake_bundle(manifest, out_root):
+    with release_db(manifest) as db_path:
+        return build_bundle(manifest, FakeEmbedder(), out_root=out_root, db_path=db_path)
+
+
 class RagFixture(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.dir = Path(self.temp.name)
         self.pointer = self.dir / "artifacts/index_manifest.json"
-        self.bundle, _ = build_bundle(V11, FakeEmbedder(), out_root=self.dir / "artifacts/index")
+        self.bundle, _ = fake_bundle(V11, self.dir / "artifacts/index")
         activate(self.bundle, self.pointer)
         self.settings = Settings(db_path=str(self.dir / "test.db"), rag_index_pointer=str(self.pointer),
                                  request_limit=10000, session_limit=1000, chat_limit=1000, **KEYS)
@@ -41,7 +47,7 @@ class RagFixture(unittest.TestCase):
 class IndexTests(RagFixture):
     def test_build_is_reproducible_and_records_required_metadata(self):
         first = (self.bundle / "chunks.jsonl").read_bytes()
-        build_bundle(V11, FakeEmbedder(), out_root=self.dir / "artifacts/index")
+        fake_bundle(V11, self.dir / "artifacts/index")
         self.assertEqual(first, (self.bundle / "chunks.jsonl").read_bytes())
         manifest = load_active(self.pointer).manifest
         for key in ("provider", "model", "revision", "dimension", "normalization", "metric",
@@ -50,12 +56,21 @@ class IndexTests(RagFixture):
         self.assertEqual(manifest["corpus_release"], "1.1.0")
         self.assertEqual(sum(manifest["chunks_by_access"].values()), manifest["chunk_count"])
 
-    def test_chunks_point_back_to_the_source_text(self):
+    def test_chunks_point_back_to_the_db_section_text(self):
         bundle = IndexBundle(self.bundle)
         chunk = next(c for c in bundle.chunks["public"] if c.doc_id == "DOC-POL-RETURN")
-        source = (ROOT / chunk.source).read_text(encoding="utf-8").replace("\r\n", "\n")
-        self.assertTrue(chunk.text.endswith(source[chunk.char_start:chunk.char_end]))
+        with release_db(V11) as db_path:
+            conn = connect(db_path)
+            content = conn.execute("SELECT content_text FROM corpus_document_versions WHERE doc_id = ? AND version = ?",
+                                   (chunk.doc_id, chunk.version)).fetchone()[0]
+            conn.close()
+        self.assertTrue(chunk.text.endswith(unwrap(content[chunk.char_start:chunk.char_end])))
         self.assertEqual(chunk.version, "1.1")
+
+    def test_pdf_line_wraps_are_joined_but_bullets_and_table_rows_stay(self):
+        text = "được hỗ trợ trong\nvòng 14 ngày:\n • Còn tem\nmác.\n• Chưa giặt.\nSKU   Màu\nBAG-GRY-15   Xám"
+        self.assertEqual(unwrap(text),
+                         "được hỗ trợ trong vòng 14 ngày:\n- Còn tem mác.\n- Chưa giặt.\nSKU   Màu\nBAG-GRY-15   Xám")
 
     def test_tampered_vectors_or_pointer_stop_the_index(self):
         vectors = self.bundle / "vectors_public.npy"
@@ -144,7 +159,7 @@ class ServiceTests(RagFixture):
         self.assertEqual(result["citations"], [])
 
     def test_release_mismatch_degrades_instead_of_citing(self):
-        build_bundle(V10, FakeEmbedder(), out_root=self.dir / "artifacts/index")
+        fake_bundle(V10, self.dir / "artifacts/index")
         activate(self.dir / "artifacts/index/1.0.0-fake", self.pointer)
         self.service.reload()
         self.service.check_release(self.conn)
@@ -168,11 +183,11 @@ class GeminiIndexTests(unittest.TestCase):
         for release in ("1.0.0", "1.1.0"):
             shutil.copytree(ROOT / f"artifacts/index/{release}-gemini", self.dir / f"artifacts/index/{release}-gemini")
         self.pointer = self.dir / "artifacts/index_manifest.json"
-        gemini_bundle.activate(self.dir / "artifacts/index/1.1.0-gemini", V11, self.pointer)
         settings = Settings(db_path=str(self.dir / "test.db"), rag_index_pointer=str(self.pointer),
                             rag_embedding_provider="gemini", llm_usage_path=None)
         self.conn = connect(settings.db_path)
         ensure_corpus_seeded(self.conn, V11)
+        gemini_bundle.activate(self.dir / "artifacts/index/1.1.0-gemini", V11, self.pointer, settings.db_path)
         self.service = KnowledgeService(settings)
         self.service.check_release(self.conn)
         # The query "embeds" exactly like the change-of-mind section of the active release.
@@ -203,6 +218,14 @@ class GeminiIndexTests(unittest.TestCase):
         self.assertEqual(old["citations"][0]["version"], "1.0")
         self.service.activate(self.conn, "1.1.0", "admin-1")
         self.assertIn("14 ngày", self.service.answer(self.conn, question, "customer")["answer"])
+
+    def test_app_on_a_fresh_db_syncs_then_loads_the_index(self):
+        settings = Settings(db_path=str(self.dir / "fresh.db"), rag_index_pointer=str(self.pointer),
+                            rag_embedding_provider="gemini", llm_usage_path=None)
+        app = create_app(settings)
+        self.assertFalse(app.state.knowledge.ready)
+        with TestClient(app) as client:
+            self.assertTrue(client.get("/api/health").json()["rag_ready"], app.state.knowledge.problem)
 
     def test_pointer_that_does_not_match_the_index_stops_the_service(self):
         pointer = json.loads(self.pointer.read_text(encoding="utf-8"))

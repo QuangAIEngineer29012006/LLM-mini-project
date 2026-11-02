@@ -25,7 +25,7 @@ result = answer_knowledge_question(
     {
       "chunk_id": "DOC-PRD-001:3",
       "doc_id": "DOC-PRD-001",
-      "source": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.md",
+      "source": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.pdf",
       "version": "1.0",
       "title": "Áo thun basic cotton — thông số, biến thể và bảo quản",
       "section": "Chất liệu và form"

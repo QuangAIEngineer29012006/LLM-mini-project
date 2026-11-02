@@ -6,6 +6,7 @@ import unittest
 
 from shop_db.corpus_errors import SkuSyncMismatch
 from shop_db.corpus_files import fingerprint
+from shop_db.corpus_pdf import extract_markdown_from_pdf, render_markdown_to_pdf_bytes
 from shop_db.sku_sync_service import (
     REPO_ROOT,
     load_manifest,
@@ -80,12 +81,12 @@ class SkuSyncTests(CorpusTestCase):
     def test_04_cross_product_sku_in_manifest_or_markdown_is_caught(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_root = copy_corpus_to_tmp(tmp)
-            prd1_path = tmp_root / "data_config" / "corpus" / "products" / "prd_01_ao_thun_basic_cotton.md"
-            prd1_path.write_text(
-                prd1_path.read_text(encoding="utf-8") + "\nTham chiếu nhầm mã HOD-GRY-M ở đây.\n",
-                encoding="utf-8",
+            prd1_pdf = tmp_root / "data_config" / "corpus" / "products" / "prd_01_ao_thun_basic_cotton.pdf"
+            prd1_md_text = extract_markdown_from_pdf(prd1_pdf)
+            prd1_pdf.write_bytes(
+                render_markdown_to_pdf_bytes(prd1_md_text + "\nTham chiếu nhầm mã HOD-GRY-M ở đây.\n")
             )
-            new_fp = fingerprint(prd1_path)
+            new_fp = fingerprint(prd1_pdf)
             manifest = load_manifest(tmp_root / "data_config" / "corpus_manifest_v1.0.json")
             for doc in manifest["documents"]:
                 if doc["doc_id"] == "DOC-PRD-001":
@@ -149,30 +150,37 @@ class SkuSyncTests(CorpusTestCase):
             tmp_root = copy_corpus_to_tmp(tmp)
             base_manifest = load_manifest(tmp_root / "data_config" / "corpus_manifest_v1.0.json")
 
-            # 1) hash_mismatch + size_mismatch khi sửa nội dung mà không đổi manifest
-            faq_file = tmp_root / "data_config" / "corpus" / "guides" / "faq_khach_hang.md"
-            orig_faq = faq_file.read_text(encoding="utf-8")
-            faq_file.write_text(orig_faq + "\nThêm dòng mới.\n", encoding="utf-8")
+            # 1) hash_mismatch khi sửa nội dung PDF mà không đổi manifest
+            faq_pdf = tmp_root / "data_config" / "corpus" / "guides" / "faq_khach_hang.pdf"
+            orig_faq_pdf = faq_pdf.read_bytes()
+            orig_faq_md = extract_markdown_from_pdf(faq_pdf)
+
+            faq_pdf.write_bytes(render_markdown_to_pdf_bytes(orig_faq_md + "\nThêm dòng mới.\n"))
             r_hash = validate_manifest(base_manifest, repo_root=tmp_root)
             self.assertIn("hash_mismatch", {e["code"] for e in r_hash["errors"]})
-            faq_file.write_text(orig_faq, encoding="utf-8")
 
-            # 2) file_empty
-            faq_file.write_text("   \n", encoding="utf-8")
+            # 2) file_empty trên PDF
+            faq_pdf.write_bytes(b"")
             r_empty = validate_manifest(base_manifest, repo_root=tmp_root)
             self.assertIn("file_empty", {e["code"] for e in r_empty["errors"]})
 
-            # 3) file_missing
-            faq_file.unlink()
+            # 3) file_invalid_pdf khi file hỏng header PDF
+            faq_pdf.write_bytes(b"NOT_A_VALID_PDF_FILE")
+            r_bad_pdf = validate_manifest(base_manifest, repo_root=tmp_root)
+            self.assertIn("file_invalid_pdf", {e["code"] for e in r_bad_pdf["errors"]})
+
+            # 4) file_missing
+            faq_pdf.unlink()
             r_missing = validate_manifest(base_manifest, repo_root=tmp_root)
             self.assertIn("file_missing", {e["code"] for e in r_missing["errors"]})
 
-            # Khôi phục rồi kiểm tra hardcoded_stock + front_matter_mismatch
-            faq_file.write_text(
-                orig_faq.replace("version: 1.0", "version: 2.5") + "\nKho hiện còn 15 cái sẵn.\n",
-                encoding="utf-8",
+            # Khôi phục rồi kiểm tra hardcoded_stock + front_matter_mismatch trực tiếp trên PDF
+            faq_pdf.write_bytes(
+                render_markdown_to_pdf_bytes(
+                    orig_faq_md.replace("version: 1.0", "version: 2.5") + "\nKho hiện còn 15 cái sẵn.\n"
+                )
             )
-            fp_mut = fingerprint(faq_file)
+            fp_mut = fingerprint(faq_pdf)
             mut_manifest = json.loads(json.dumps(base_manifest))
             for d in mut_manifest["documents"]:
                 if d["doc_id"] == "DOC-FAQ-PUBLIC":
@@ -182,9 +190,9 @@ class SkuSyncTests(CorpusTestCase):
             self.assertIn("front_matter_mismatch", codes_fm)
             self.assertIn("hardcoded_stock", codes_fm)
 
-            # 4) duplicate_doc_id & missing_field
+            # 5) duplicate_doc_id & missing_field
+            faq_pdf.write_bytes(orig_faq_pdf)
             dup_manifest = json.loads(json.dumps(base_manifest))
-            faq_file.write_text(orig_faq, encoding="utf-8")
             dup_doc = dict(dup_manifest["documents"][0])
             dup_manifest["documents"].append(dup_doc)
             bad_doc = dict(dup_manifest["documents"][1])
@@ -199,9 +207,11 @@ class SkuSyncTests(CorpusTestCase):
     def test_10_path_traversal_or_backslash_in_source_path_rejected(self):
         for bad_path in (
             "data_config/corpus/../corpus_manifest_v1.0.json",
-            "data_config\\corpus\\guides\\faq_khach_hang.md",
+            "data_config/corpus/../corpus_manifest_v1.0.pdf",
+            "data_config\\corpus\\guides\\faq_khach_hang.pdf",
             "docs/API.md",
-            "/data_config/corpus/guides/faq_khach_hang.md",
+            "data_config/corpus/guides/faq_khach_hang.txt",
+            "/data_config/corpus/guides/faq_khach_hang.pdf",
         ):
             manifest = load_manifest(MANIFEST_V1_0)
             manifest["documents"][0]["source_path"] = bad_path

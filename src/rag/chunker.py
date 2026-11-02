@@ -2,11 +2,8 @@ import hashlib
 import re
 from dataclasses import asdict, dataclass
 
-from database.shop_db.corpus_files import parse_front_matter, read_normalized
-
-CHUNK_CONFIG = {"strategy": "markdown_h2_section", "max_chars": 1200, "overlap_sentences": 1,
+CHUNK_CONFIG = {"strategy": "db_section", "max_chars": 1200, "overlap_sentences": 1,
                 "prefix": "doc_title + section_title"}
-SECTION_RE = re.compile(r"(?m)^## +(.+)$")
 
 
 @dataclass
@@ -49,31 +46,23 @@ def _split_long(body, max_chars, overlap):
     return parts
 
 
-def chunk_document(entry, repo_root, config=CHUNK_CONFIG):
-    """Turn one manifest entry into section chunks with offsets into the LF-normalised source file."""
-    text, _ = read_normalized(repo_root / entry["source_path"])
-    front = parse_front_matter(text)
-    if front.get("doc_id") != entry["doc_id"] or str(front.get("version")) != entry["version"]:
-        raise ValueError(f"Front matter của {entry['source_path']} không khớp manifest")
-    headings = list(SECTION_RE.finditer(text))
-    if not headings:
-        raise ValueError(f"{entry['source_path']} không có section ##")
+def chunk_document(document, config=CHUNK_CONFIG):
+    """Turn one document from corpus_source.load_documents into chunks, one or more per DB section.
+
+    char_start/char_end are the section's range in the DB's content_text; a split section shares that range.
+    """
     chunks = []
-    for index, heading in enumerate(headings):
-        body_start = heading.end() + 1
-        body_end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
-        section = heading.group(1).strip()
-        for offset, part in _split_long(text[body_start:body_end], config["max_chars"], config["overlap_sentences"]):
+    for section in document["sections"]:
+        for _, part in _split_long(section["text"], config["max_chars"], config["overlap_sentences"]):
             body = part.strip()
             if not body:
                 continue
-            start = body_start + offset + (len(part) - len(part.lstrip()))
-            chunk_text = f"{entry['title']} — {section}\n{body}"
+            chunk_text = f"{document['title']} — {section['title']}\n{body}"
             chunks.append(Chunk(
-                chunk_id=f"{entry['doc_id']}@{entry['version']}#{len(chunks) + 1:02d}",
-                doc_id=entry["doc_id"], title=entry["title"], section=section, source=entry["source_path"],
-                version=entry["version"], access_level=entry["access_level"], doc_type=entry["doc_type"],
-                char_start=start, char_end=start + len(body), skus=list(entry.get("skus", [])),
-                product_ids=list(entry.get("product_ids", [])), text=chunk_text,
-                sha256=hashlib.sha256(chunk_text.encode()).hexdigest()))
+                chunk_id=f"{document['doc_id']}@{document['version']}#{len(chunks) + 1:02d}",
+                doc_id=document["doc_id"], title=document["title"], section=section["title"],
+                source=document["source_path"], version=document["version"], access_level=document["access_level"],
+                doc_type=document["doc_type"], char_start=section["char_start"], char_end=section["char_end"],
+                skus=list(document.get("skus", [])), product_ids=list(document.get("product_ids", [])),
+                text=chunk_text, sha256=hashlib.sha256(chunk_text.encode()).hexdigest()))
     return chunks

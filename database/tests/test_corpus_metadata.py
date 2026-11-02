@@ -13,6 +13,7 @@ from shop_db.corpus_errors import (
     CorpusVersionConflict,
 )
 from shop_db.corpus_files import fingerprint
+from shop_db.corpus_pdf import extract_markdown_from_pdf, render_markdown_to_pdf_bytes
 from shop_db.corpus_seed import ensure_corpus_seeded, reset_and_seed_all
 from shop_db.db import connect, latest_version, migrate
 from shop_db.seed import reset_and_seed, seed_catalog
@@ -149,7 +150,7 @@ class CorpusMetadataTests(CorpusTestCase):
         cit = corpus.resolve_citation(self.conn, "DOC-POL-WARRANTY", role="customer")
         self.assertEqual(cit["doc_id"], "DOC-POL-WARRANTY")
         self.assertEqual(cit["version"], "1.0")
-        self.assertEqual(cit["source"], "data_config/corpus/policies/pol_bao_hanh.md")
+        self.assertEqual(cit["source"], "data_config/corpus/policies/pol_bao_hanh.pdf")
         self.assertTrue(cit["is_active_version"])
         self.assertTrue(cit["source_exists"])
         self.assertTrue(cit["sha256_matches"])
@@ -207,12 +208,12 @@ class CorpusMetadataTests(CorpusTestCase):
         before_sha = corpus.get_document(self.conn, "DOC-FAQ-PUBLIC", "customer")["content_sha256"]
         with tempfile.TemporaryDirectory() as tmp:
             tmp_root = copy_corpus_to_tmp(tmp)
-            faq_path = tmp_root / "data_config" / "corpus" / "guides" / "faq_khach_hang.md"
-            faq_path.write_text(
-                faq_path.read_text(encoding="utf-8") + "\n## Mục bổ sung trái quy tắc\nNội dung khác.\n",
-                encoding="utf-8",
+            faq_pdf_path = tmp_root / "data_config" / "corpus" / "guides" / "faq_khach_hang.pdf"
+            faq_md_text = extract_markdown_from_pdf(faq_pdf_path)
+            faq_pdf_path.write_bytes(
+                render_markdown_to_pdf_bytes(faq_md_text + "\n## Mục bổ sung trái quy tắc\nNội dung khác.\n")
             )
-            new_fp = fingerprint(faq_path)
+            new_fp = fingerprint(faq_pdf_path)
             mpath = tmp_root / "data_config" / "corpus_manifest_v1.0.json"
             manifest = load_manifest(mpath)
             manifest["corpus_release"] = "1.0.9"

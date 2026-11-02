@@ -69,6 +69,8 @@ def create_app(settings=None, llm_client=None):
     async def lifespan(app):
         knowledge = app.state.knowledge
         initialize(settings.db_path, knowledge.manifest_path)
+        # The index is checked against corpus text stored by the sync above, so load it again now.
+        knowledge.reload()
         with db() as conn:
             knowledge.check_release(conn)
         yield

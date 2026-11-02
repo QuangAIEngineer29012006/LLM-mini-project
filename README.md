@@ -47,7 +47,7 @@ Mở http://127.0.0.1:5173. Giữ hai cửa sổ chạy. Vite chuyển tiếp `/
 
 | Kế thừa từ project LLM | Bổ sung ở project RAG |
 |---|---|
-| Website, API, SQLite catalog/tồn/đơn/audit, giỏ và checkout | Corpus 17 tài liệu (`data_config/`), manifest v1.0/v1.1, metadata và đối soát SKU (`database/shop_db/corpus_*`) |
+| Website, API, SQLite catalog/tồn/đơn/audit, giỏ và checkout | Corpus 17 tài liệu PDF (`data_config/`), manifest v1.0/v1.1, metadata, text và section tách sẵn từ PDF trong SQLite, đối soát SKU (`database/shop_db/corpus_*`) |
 | Luồng chat đặt hàng: parse, schema, grounding, SKU, tồn, quyền, idempotency | Route `knowledge_query` và câu kết hợp (`backend/chat_service.py`), prompt `shop-assistant-v5` |
 | Timeout, retry hữu hạn, ngân sách gọi model, mock mode, xử lý lỗi | Ingestion, index Gemini và retrieval lọc quyền của TV2 (`src/rag/gemini_index.py`), generation có citation (`src/rag/`) |
 | | Role customer/staff/admin mô phỏng, trang staff/admin `#admin`, re-index/rollback, evaluation RAG (`artifacts/`) |

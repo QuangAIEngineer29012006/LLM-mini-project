@@ -18,6 +18,7 @@ from backend.config import Settings  # noqa: E402
 from backend.main import create_app  # noqa: E402
 from database.shop_db.db import connect  # noqa: E402
 from src.rag.embedder import FakeEmbedder  # noqa: E402
+from src.rag.corpus_source import release_db  # noqa: E402
 from src.rag.index import IndexBundle, activate, build_bundle  # noqa: E402
 
 KEYS = {"demo_staff_key": "reindex-staff-key", "demo_admin_key": "reindex-admin-key"}
@@ -46,7 +47,9 @@ def main():
         pointer = folder / "artifacts/index_manifest.json"
         bundles = {}
         for release, manifest in (("1.0.0", "corpus_manifest_v1.0.json"), ("1.1.0", "corpus_manifest_v1.1.json")):
-            path, meta = build_bundle(ROOT / "data_config" / manifest, FakeEmbedder(), out_root=index_root)
+            with release_db(ROOT / "data_config" / manifest) as db_path:
+                path, meta = build_bundle(ROOT / "data_config" / manifest, FakeEmbedder(), out_root=index_root,
+                                          db_path=db_path)
             committed = ROOT / "artifacts/index" / path.name / "index_manifest.json"
             same = committed.is_file() and json.loads(committed.read_text(encoding="utf-8"))["files"] == meta["files"]
             bundles[release] = {"index_id": meta["index_id"], "chunk_count": meta["chunk_count"],

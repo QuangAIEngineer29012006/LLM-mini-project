@@ -7,7 +7,7 @@ import uuid
 
 from database.shop_db import conversation_service as conversations
 from database.shop_db.corpus_seed import ensure_corpus_seeded
-from database.shop_db.db import connect, migrate, transaction
+from database.shop_db.db import MIGRATIONS_DIR, connect, migrate, transaction
 from database.shop_db.seed import seed_catalog
 
 from .errors import ApiProblem
@@ -41,12 +41,21 @@ def initialize(path, corpus_manifest=None):
         with transaction(conn):
             if not conn.execute("SELECT 1 FROM products LIMIT 1").fetchone():
                 seed_catalog(conn)
+        rebuild_markdown_corpus(conn)
         ensure_corpus_seeded(conn, corpus_manifest)
         conn.executescript(SCHEMA)
         if "role" not in {r["name"] for r in conn.execute("PRAGMA table_info(api_sessions)")}:
             conn.execute("ALTER TABLE api_sessions ADD COLUMN role TEXT NOT NULL DEFAULT 'customer'")
     finally:
         conn.close()
+
+
+# DB tạo trước khi corpus đổi sang PDF còn version gắn hash file .md, nên sync bản PDF cùng version bị từ chối.
+# Khi đó dựng lại riêng các bảng corpus_* bằng migration 003 rồi sync lại; đơn hàng, catalog, hội thoại giữ nguyên.
+def rebuild_markdown_corpus(conn):
+    if conn.execute("SELECT 1 FROM corpus_document_versions WHERE source_path LIKE '%.md' LIMIT 1").fetchone():
+        sql = (MIGRATIONS_DIR / "003_corpus_metadata.sql").read_text(encoding="utf-8")
+        conn.executescript("BEGIN;\n" + sql + "\nCOMMIT;")
 
 
 # Tạo token, chủ phiên và hội thoại mới; database chỉ lưu hash của token, hạn dùng và role mô phỏng.
