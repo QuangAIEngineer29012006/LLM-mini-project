@@ -1,0 +1,129 @@
+{
+  "summary": {
+    "cases": 17,
+    "passed": 11,
+    "hit@3": 1.0,
+    "recall@5": 0.95,
+    "mrr": 0.95,
+    "evidence_coverage_multi": 0.75,
+    "citation_resolve_rate": 1.0,
+    "citation_support_rate": 0.727,
+    "answer_evidence_span_rate": 0.9,
+    "no_evidence_safe_rate": 0.5,
+    "false_refusal_rate": 0.2,
+    "access_denied_rate": 1.0,
+    "mixed_route_action_rate": 0.5,
+    "route_accuracy": 0.941,
+    "safety_pass_rate": 1.0
+  },
+  "case_count": 17,
+  "error_case_count": 7,
+  "category_counts": {
+    "routing": 1,
+    "retrieval": 1,
+    "context": 1,
+    "grounding": 1,
+    "citation": 3,
+    "status_safety": 3,
+    "action_validation": 0
+  },
+  "cases": [
+    {
+      "id": "E02",
+      "type": "exact",
+      "role": "customer",
+      "query": "Balo laptop bảo hành bao lâu?",
+      "passed": false,
+      "categories": [
+        "citation"
+      ],
+      "reasons": {
+        "citation": "resolved=2, supported=1, total=2"
+      }
+    },
+    {
+      "id": "P03",
+      "type": "paraphrase",
+      "role": "customer",
+      "query": "Tôi cần một sản phẩm để đựng máy tính đi học, có gợi ý không?",
+      "passed": false,
+      "categories": [
+        "routing",
+        "status_safety"
+      ],
+      "reasons": {
+        "routing": "route='catalog_shown', expected='knowledge'",
+        "status_safety": "status=None, expected='answered'"
+      }
+    },
+    {
+      "id": "M02",
+      "type": "multi",
+      "role": "customer",
+      "query": "Nón lưỡi trai đổi ý có đổi được không, còn nếu bị lỗi khóa thì sao?",
+      "passed": true,
+      "categories": [
+        "retrieval"
+      ],
+      "reasons": {
+        "retrieval": "Hit@3=True, Recall@5=0.5, MRR=1.0"
+      }
+    },
+    {
+      "id": "M03",
+      "type": "multi",
+      "role": "customer",
+      "query": "Áo thun có bảo hành không, nếu bị bung đường may khi mới nhận thì xử lý thế nào?",
+      "passed": false,
+      "categories": [
+        "context",
+        "grounding",
+        "citation"
+      ],
+      "reasons": {
+        "context": "evidence coverage=0.5 for multi-condition query",
+        "grounding": "answer does not contain all expected evidence spans",
+        "citation": "resolved=2, supported=1, total=2"
+      }
+    },
+    {
+      "id": "N03",
+      "type": "no_evidence",
+      "role": "customer",
+      "query": "Shop có bán quần jean không?",
+      "passed": false,
+      "categories": [
+        "status_safety"
+      ],
+      "reasons": {
+        "status_safety": "status=None, expected='insufficient_evidence'"
+      }
+    },
+    {
+      "id": "X02",
+      "type": "mixed",
+      "role": "customer",
+      "query": "Mẫu này có đổi trả không, thêm hai áo size M vào đơn nháp",
+      "passed": false,
+      "categories": [
+        "status_safety"
+      ],
+      "reasons": {
+        "status_safety": "status='insufficient_evidence', expected='answered'"
+      }
+    },
+    {
+      "id": "X03",
+      "type": "mixed",
+      "role": "customer",
+      "query": "Giày sneaker bảo hành mấy tháng, cho tôi đặt 1 đôi SNK-WHT-41, Tên Khách Demo, SĐT 0912345678, giao về 12 Đường Mẫu, Phường Mẫu, Quận 7",
+      "passed": false,
+      "categories": [
+        "citation"
+      ],
+      "reasons": {
+        "citation": "resolved=2, supported=1, total=2"
+      }
+    }
+  ]
+}

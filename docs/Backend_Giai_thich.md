@@ -354,4 +354,3 @@ Bản sao lưu trước khi sửa: thư mục `LLM-mini-project_backup_2026-10-2
 - Grounding so khớp chuỗi đã bỏ dấu; chưa hiểu mọi cách nói (từ đồng nghĩa, viết tắt lạ).
 - `UNSAFE` là regex: câu bình thường như “xóa 1 áo khỏi đơn” cũng bị chuyển `handoff`.
 - Demo trực tiếp với Gemini phụ thuộc mạng và quota; khi hết, bot trả `failed_validation` và đơn không đổi.
-- Tài liệu cũ trong `presentations/backend_llm_2026-10-22/` trích số dòng trước đợt rà soát này và còn nhắc các file Streamlit đã xóa.

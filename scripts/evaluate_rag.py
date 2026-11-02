@@ -22,6 +22,7 @@ from database.shop_db.db import connect  # noqa: E402
 from database.shop_db.text_utils import normalize  # noqa: E402
 from src.rag.answer import GeminiGenerator  # noqa: E402
 from src.rag.retriever import select_context  # noqa: E402
+from scripts.error_analysis import build_error_analysis, render_markdown  # noqa: E402
 
 KEYS = {"demo_staff_key": "eval-staff-key", "demo_admin_key": "eval-admin-key"}
 # Judgments are labelled on the v1.1 section chunks; comparing (doc_id, section) lets the same labels score both
@@ -164,6 +165,15 @@ def main(argv=None):
     name = f"evaluation_results_{args.split}_{args.provider}{embedding}{'_' + args.label if args.label else ''}.json"
     (ROOT / "artifacts" / name).write_text(json.dumps({"summary": summary, "results": results}, ensure_ascii=False, indent=2) + "\n",
                                            encoding="utf-8")
+    analysis = build_error_analysis(results)
+    error_stem = name.removesuffix(".json")
+    (ROOT / "artifacts" / f"{error_stem}_error_analysis.json").write_text(
+        json.dumps({"summary": summary, **analysis}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (ROOT / "artifacts" / f"{error_stem}_error_analysis.md").write_text(
+        render_markdown(analysis, summary), encoding="utf-8"
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=1))
     for r in results:
         if not r["passed"]:

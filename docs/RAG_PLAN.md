@@ -1,12 +1,12 @@
 # Kế hoạch mở rộng RAG
 
-> **Trạng thái 29/10/2026:** P1–P8 đã triển khai theo kế hoạch này với các quyết định D1–D8 như đề xuất. Kết quả: [README](../README.md#rag-tra-cứu-tài-liệu-có-trích-dẫn), [kiến trúc](architecture.md), [evaluation](../artifacts/evaluation_report.md), [re-index](../artifacts/reindex_report.md), [demo](../demo.md). Bảng "Hiện trạng" bên dưới là ảnh chụp trước khi triển khai.
+> **Trạng thái cập nhật 02/11/2026:** P1–P8 đã được tích hợp vào branch hiện tại cùng giao diện React mới. Kết quả và bằng chứng nằm trong [README](../README.md#rag-tra-cứu-tài-liệu-có-trích-dẫn), [kiến trúc](architecture.md), [evaluation](../artifacts/evaluation_report.md), [error analysis tự động](EVALUATION_WORKFLOW.md) và [re-index](../artifacts/reindex_report.md). Bảng “Hiện trạng trước triển khai” bên dưới được giữ lại để giải thích lý do của từng giai đoạn.
 
 Đối chiếu với đề `rag-extension-live-commerce-order-assistant.pdf` (ký hiệu §x là mục trong đề) và code nhánh `backend` tại commit `4181d29` (29/10/2026).
 
 ---
 
-## 0. Hiện trạng
+## 0. Hiện trạng trước triển khai
 
 | Yêu cầu | Mục | Trạng thái | Ghi chú |
 |---|---|---|---|
@@ -25,7 +25,22 @@
 | Evaluation RAG ≥ 20 case, metrics, error analysis | §7 | **Thiếu** | Bộ eval hiện tại chỉ cho order flow |
 | Thư mục `artifacts/`, README, architecture, demo | §9 | **Thiếu** | |
 
-**Tóm lại:** phần dữ liệu (TV1) đã xong và chất lượng tốt. Toàn bộ phần RAG (ingestion → retrieval → generation), phần tích hợp router/UI và phần evaluation vẫn chưa bắt đầu.
+**Tóm lại (ở thời điểm trước triển khai):** phần dữ liệu (TV1) đã xong và chất lượng tốt. Toàn bộ phần RAG (ingestion → retrieval → generation), phần tích hợp router/UI và phần evaluation khi đó vẫn chưa bắt đầu.
+
+## 0b. Trạng thái sau tích hợp
+
+| Hạng mục | Trạng thái hiện tại | Bằng chứng |
+|---|---|---|
+| Corpus, metadata, SKU sync và access level | Hoàn thành | `data_config/`, `database/shop_db/`, migration 003 |
+| Ingestion, chunking, embedding và index bundle | Hoàn thành | `src/rag/`, `artifacts/index/`, `artifacts/index_manifest.json` |
+| Retrieval pre-filter theo role | Hoàn thành | `src/rag/retriever.py`, `tests/test_rag.py` |
+| Grounded answer và citation validation | Hoàn thành | `src/rag/answer.py`, `src/rag/service.py` |
+| API knowledge, chat routing và mixed query | Hoàn thành | `backend/main.py`, `backend/chat_service.py` |
+| Frontend citation/status/admin index | Đã tích hợp | `frontend/src/Knowledge.tsx`, `frontend/src/AdminPage.tsx` |
+| Evaluation, metric và error analysis | Hoàn thành; còn near-miss được báo cáo | `scripts/evaluate_rag.py`, `scripts/error_analysis.py`, `artifacts/` |
+| Re-index 1.0 → 1.1 → rollback | Hoàn thành | `scripts/reindex_demo.py`, `artifacts/reindex_report.md` |
+
+**Lưu ý chất lượng:** “Hoàn thành” ở đây nghĩa là đã có code, test và bằng chứng chạy. Evaluation Gemini cuối cùng vẫn có một số case fail/near-miss; các case này không bị loại bỏ mà được ghi trong `evaluation_report.md` và các file `*_error_analysis.*`.
 
 ---
 
@@ -156,7 +171,6 @@ Mỗi giai đoạn có: việc cần làm, file dự kiến, tiêu chí xong. G�
 
 1. README: phần kế thừa vs bổ sung, chạy mock/real, provenance dữ liệu, mô hình quyền, kiến trúc router, giới hạn, cách chạy test/eval.
 2. `docs/architecture.md`: sơ đồ customer message → router → order flow / RAG flow / handoff → API/DB, kèm bảng quyền đọc/side effect.
-3. `demo.md`: kịch bản 10–12 phút theo đúng 6 mục ở §10.
 4. Không commit `.env`, credential.
 
 ---
@@ -195,7 +209,7 @@ flowchart LR
 | `artifacts/index_manifest.json` | Con trỏ bundle active + bundle trong `artifacts/index/` |
 | `artifacts/evaluation_cases.jsonl`, `relevance_judgments.jsonl`, `evaluation_report.md`, `reindex_report.md` | Mới (P6, P7) |
 | `tests/` | Thêm `tests/test_rag_*.py` |
-| `docs/architecture.md`, `README.md`, `demo.md` | Cập nhật / mới (P8) |
+| `docs/architecture.md`, `README.md` | Cập nhật / mới (P8) |
 
 ---
 

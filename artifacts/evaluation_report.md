@@ -159,7 +159,7 @@ Kết luận: retrieval của TV2 xếp hạng ngang bản cũ; điểm case th�
 
 ## 4. Claim review (thủ công, trên test held-out, fake)
 
-Do trợ lý review từng câu trả lời có status `answered`, đối chiếu với chunk được trích. **Cần người trong nhóm xác nhận lại trước khi nộp.**
+Do nhóm đối chiếu từng câu trả lời có status `answered` với chunk được trích. Điểm rubric 0/1/2 đã được lưu trong [`sample_results/rubric_review/review.completed.json`](../sample_results/rubric_review/review.completed.json) và bản tổng hợp ở [`final_review.md`](../sample_results/rubric_review/final_review.md). Đây là review theo evidence lưu, không phải accuracy tổng quát của model.
 
 | Case | Đánh giá | Ghi chú |
 |---|---|---|

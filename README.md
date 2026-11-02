@@ -98,8 +98,8 @@ Quyền được áp **trước** retrieval: mỗi role chỉ nạp vector của
 ### Báo cáo
 
 - [Evaluation RAG](artifacts/evaluation_report.md): 30 case dev/test, Hit@3/Recall@5/MRR, citation, no-evidence, access-denied, mixed, claim review, phân tích lỗi, cải tiến có kiểm soát.
+- [Quy trình evaluation](docs/EVALUATION_WORKFLOW.md): lệnh chạy, metric, error-analysis tự động và re-index verification.
 - [Re-index 1.0 → 1.1 → rollback](artifacts/reindex_report.md), bằng chứng chạy tự động ở `artifacts/reindex_evidence.json`.
-- [Kịch bản demo](demo.md).
 
 ### Giới hạn
 
@@ -122,12 +122,12 @@ npm test
 npm run build
 ```
 
-Đọc [kết quả](sample_results/STATUS.md), [rubric 0/1/2](docs/EVALUATION_REVIEW.md) và [cải tiến đã kiểm chứng](sample_results/failure_analysis.md). Bộ đánh giá gồm 29 tình huống; báo cáo phân biệt kiểm tra tự động, kết quả Gemini đã lưu và rubric do người đọc xác nhận.
+Đọc [kết quả](sample_results/STATUS.md), [rubric 0/1/2](docs/EVALUATION_REVIEW.md) và [cải tiến đã kiểm chứng](sample_results/failure_analysis.md). Bộ đánh giá RAG gồm 30 tình huống; báo cáo phân biệt kiểm tra tự động, kết quả Gemini đã lưu, error analysis tự động và rubric do người đọc xác nhận.
 
 ## Tài liệu
 
 - [Kiến trúc](docs/architecture.md) · [API](docs/API.md) · [Database](database/docs/DATABASE.md)
-- [Demo 7 phút](docs/DEMO_RUNBOOK.md) · [Kiểm tra trình duyệt](docs/BROWSER_ACCEPTANCE.md)
+- [Kiểm tra trình duyệt](docs/BROWSER_ACCEPTANCE.md)
 - [Cấu trúc bản tổng hợp](docs/RELEASE_NOTES.md)
 
 Giao diện duy nhất là React tại `frontend/src/`. Khi chạy demo, dùng hai lệnh backend/Vite ở trên.
