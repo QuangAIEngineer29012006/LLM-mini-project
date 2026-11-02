@@ -1,15 +1,18 @@
 import json
 import re
+import unicodedata
 from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints, ValidationError
 
 from backend.models import StrictModel
+from backend.variant_utils import size_value
 from database.shop_db.text_utils import normalize
 
 
 Text = Annotated[str, StringConstraints(min_length=1, max_length=200)]
-INTENTS = Literal["browse_catalog", "create_order", "check_stock", "check_price", "update_order", "unknown_or_handoff"]
+INTENTS = Literal["browse_catalog", "create_order", "check_stock", "check_price", "update_order", "knowledge_query",
+                  "unknown_or_handoff"]
 
 
 class Variant(StrictModel):
@@ -47,6 +50,7 @@ class Extraction(StrictModel):
     requires_human_review: bool
     evidence: Annotated[list[Text], Field(max_length=10)]
     catalog_filters: CatalogFilters = Field(default_factory=CatalogFilters)
+    knowledge_question: Text | None = None
 
 
 class OutputError(Exception):
@@ -81,7 +85,7 @@ NUMBER_WORDS = {"mot": 1, "hai": 2, "ba": 3, "bon": 4, "nam": 5, "sau": 6, "bay"
 
 
 def money_amounts(text):
-    matches = re.findall(r"(?<![a-z0-9])(\d+(?:[.,]\d+)*)\s*(trieu|tr|nghin|ngan|k)?\b", normalize_money(text))
+    matches = re.findall(r"(?<![a-z0-9])(\d+(?:[.,]\d+)*)\s*(trieu|tr|nghin|ngan|k)?\b", plain_text(text))
     amounts = set()
     for number, unit in matches:
         if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", number):
@@ -95,9 +99,52 @@ def money_amounts(text):
     return amounts
 
 
-def normalize_money(text):
-    import unicodedata
+def plain_text(text):
+    """Lowercase and strip Vietnamese accents but keep punctuation, unlike text_utils.normalize."""
     return "".join(c for c in unicodedata.normalize("NFD", text.lower().replace("đ", "d")) if unicodedata.category(c) != "Mn")
+
+
+def quantity_source(message, customer=None):
+    text = plain_text(message)
+    text = re.split(r"\b(?:ten|nguoi nhan|sdt|so dien thoai|giao ve|giao den|dia chi)\b", text)[0]
+    if customer:
+        for value in customer.model_dump().values():
+            if value:
+                text = text.replace(plain_text(value), " ")
+    text = re.sub(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+){2,}\b", " ", text)
+    text = re.sub(r"\b\d+(?:[.,]\d+)?\s*(?:inches|inch|cm|mm|kg|g|ml)\b", " ", text)
+    text = re.sub(r"\bsize\s+[a-z0-9]+\b", " ", text)
+    text = re.sub(r"(?<!\w)-\d+(?:[.,]\d+)?|\b\d+[.,]\d+\b", " invalidquantity ", text)
+    return " " + normalize(text) + " "
+
+
+def discard_implicit_quantities(data, message):
+    source = quantity_source(message, data.customer)
+    explicit = " invalidquantity " in source or re.search(r"\b\d+\b", source) or any(" " + word + " " in source for word in NUMBER_WORDS)
+    if data.intent in {"create_order", "update_order"} and not explicit:
+        for item in data.items:
+            item.quantity = None
+    return data
+
+
+ORDER_VERB_COUNT = re.compile(r" (?:chot|dat|lay|mua|them) (\d+) ")
+UNIT_COUNT = re.compile(r" (\d+|" + "|".join(NUMBER_WORDS) + r") (?:cai|chiec|doi|san pham|sp) ")
+
+
+def recover_explicit_quantity(data, message):
+    """Fill a count the model left null when the message states exactly one, bound to an order verb or unit.
+
+    Number words count only before a unit, so 'ba lô' or 'áo nam' never become a quantity.
+    """
+    if data.intent != "create_order" or len(data.items) != 1 or data.items[0].quantity is not None:
+        return data
+    source = quantity_source(message, data.customer)
+    counts = {int(n) if n.isdigit() else NUMBER_WORDS[n]
+              for n in ORDER_VERB_COUNT.findall(source) + UNIT_COUNT.findall(source)}
+    digits = {int(n) for n in re.findall(r"\b\d+\b", source)}
+    if " invalidquantity " not in source and len(counts) == 1 and digits <= counts and 1 <= min(counts) <= 99:
+        data.items[0].quantity = counts.pop()
+    return data
 
 
 def validate_grounding(data, message):
@@ -106,11 +153,14 @@ def validate_grounding(data, message):
     def present(value):
         return value is None or (normalize(value) and " " + normalize(value) + " " in text)
     for item in data.items:
-        if not all(present(v) for v in (item.requested_product, item.sku, item.variant.color, item.variant.size)):
+        if not all(present(v) for v in (item.requested_product, item.sku, item.variant.color)):
             raise OutputError("ungrounded_output")
+        if item.variant.size and not present(item.variant.size):
+            if " " + size_value(item.variant.size) + " " not in " " + size_value(message) + " ":
+                raise OutputError("ungrounded_output")
         if item.quantity is not None:
             words = [w for w, n in NUMBER_WORDS.items() if n == item.quantity]
-            if not any(" " + q + " " in text for q in [str(item.quantity), *words]):
+            if not any(" " + q + " " in quantity_source(message, data.customer) for q in [str(item.quantity), *words]):
                 raise OutputError("ungrounded_output")
     if not all(present(v) for v in (data.customer.name, data.customer.address, data.order_reference)):
         raise OutputError("ungrounded_output")
@@ -133,4 +183,7 @@ def validate_grounding(data, message):
         raise OutputError("ungrounded_output")
     if (data.items or any(data.customer.model_dump().values()) or data.order_reference) and not data.evidence:
         raise OutputError("missing_evidence")
+    if data.knowledge_question and not present(data.knowledge_question):
+        # Retrieval falls back to the customer's own message rather than a model-rewritten question.
+        data.knowledge_question = None
     return data

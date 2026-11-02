@@ -23,3 +23,8 @@ class FakeDemoRegressionTests(unittest.TestCase):
     def test_browsing_is_not_promoted_to_purchase(self):
         data = json.loads(FakeLLMClient().generate("Cho chị xem 3 mẫu áo", [], {}).text)
         self.assertEqual(data["intent"], "browse_catalog")
+
+    def test_pair_of_shoes_is_an_order_not_an_update(self):
+        data = json.loads(FakeLLMClient().generate("Cho tôi đặt 1 đôi SNK-WHT-41", [], {}).text)
+        self.assertEqual(data["intent"], "create_order")
+        self.assertEqual(data["items"][0]["quantity"], 1)

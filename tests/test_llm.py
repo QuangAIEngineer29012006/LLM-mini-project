@@ -93,8 +93,10 @@ class WorkflowTests(BackendTestCase):
         ambiguous = self.post_chat("Đơn lúc nãy đổi thành 3 cái").json()
         self.assertIn("order_reference", ambiguous["missing_fields"])
         outsider = self.session()
-        denied = self.post_chat(f"Đổi đơn {order['order_id']} thành 3 cái", headers=outsider)
-        self.assertEqual(denied.status_code, 404)
+        denied = self.post_chat(f"Đổi đơn {order['order_id']} thành 3 cái", headers=outsider).json()
+        self.assertEqual(denied["missing_fields"], ["order_reference"], denied)
+        self.assertIsNone(denied["order"])
+        self.assertEqual(self.scalar("SELECT quantity FROM order_items WHERE order_id=?", (int(order["order_id"][2:]),)), 2)
 
     def test_injection_and_unknown_handoff_no_llm_call(self):
         self.app.state.llm_client = Mock(model_id="must-not-run")
