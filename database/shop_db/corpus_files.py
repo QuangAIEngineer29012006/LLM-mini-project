@@ -25,6 +25,11 @@ _HARDCODED_STOCK_RE = re.compile(
 _SEPARATOR_CELL_RE = re.compile(r"^:?-{2,}:?$")
 _PDF_TABLE_SPLIT_RE = re.compile(r"\s{2,}")
 _NUMBERED_HEADING_RE = re.compile(r"^(\d+)\.\s+(\S.*)$")
+_EXTERNAL_HEADING_RE = re.compile(
+    r"^(?:(?:Phần|Chương|Mục|Điều)\s+\d+[\.:]?|[IVXLC]{1,6}\.)\s+(\S.*)$",
+    flags=re.IGNORECASE,
+)
+_BODY_HEADING_LINE_RE = re.compile(r"(?m)^[ \t]*(?:## +(?P<h2>\S.*)|(?:\d+)\.\s+(?P<num>\S.*))$")
 
 _PDF_META_LABELS: tuple[tuple[str, str], ...] = (
     ("Mã tài liệu:", "doc_id"),
@@ -86,13 +91,36 @@ def read_pdf_text(path) -> tuple[str, bytes]:
         )
     # Chuẩn hóa đề mục đánh số của PDF ("1. Tổng quan") sang "## Tổng quan" trên chuỗi trả về
     # để tương thích trực tiếp với bộ chunker RAG (TV2) mà không làm bẩn giao diện file PDF gốc.
+    raw_lines = raw_text.split("\n")
+    has_primary_heading = any(
+        ln.strip().startswith("## ") or _NUMBERED_HEADING_RE.match(ln.strip()) is not None
+        for ln in raw_lines
+    )
     norm_lines: list[str] = []
-    for line in raw_text.split("\n"):
-        m = _NUMBERED_HEADING_RE.match(line.strip())
-        if m:
-            norm_lines.append(f"## {m.group(2).strip()}")
+    found_heading = False
+    for line in raw_lines:
+        stripped = line.strip()
+        if has_primary_heading:
+            m = _NUMBERED_HEADING_RE.match(stripped)
+            if m:
+                norm_lines.append(f"## {m.group(2).strip()}")
+                found_heading = True
+            else:
+                if stripped.startswith("## "):
+                    found_heading = True
+                norm_lines.append(line)
         else:
-            norm_lines.append(line)
+            m_ext = _EXTERNAL_HEADING_RE.match(stripped)
+            if m_ext:
+                norm_lines.append(f"## {stripped}")
+                found_heading = True
+            else:
+                norm_lines.append(line)
+
+    if not found_heading:
+        # Với PDF bên ngoài (xuất từ Word/Google Docs...) không đánh số mục, tự động bọc thành 1 section chuẩn
+        return f"## Nội dung tài liệu\n{raw_text.strip()}\n", raw
+
     return "\n".join(norm_lines), raw
 
 
@@ -249,6 +277,65 @@ def section_titles(text: str) -> list[str]:
         if heading:
             titles.append(heading)
     return titles
+
+
+def extract_body_text(text: str) -> str:
+    """Trả về phần nội dung chính của tài liệu (đã bỏ khung metadata đầu trang / YAML front matter)."""
+    _, body = _split_front_matter(text)
+    return body.strip()
+
+
+def extract_sections(text: str) -> list[dict]:
+    """Tách văn bản tài liệu đã chuẩn hóa thành danh sách các mục (section) kèm vị trí ký tự.
+
+    Mỗi phần tử trả về có dạng:
+      {"section_index": int, "section_title": str, "section_text": str, "char_start": int, "char_end": int}
+    Trong đó `text[char_start:char_end] == section_text`.
+    """
+    _, body = _split_front_matter(text)
+    body_offset = len(text) - len(body)
+    matches = list(_BODY_HEADING_LINE_RE.finditer(body))
+
+    if not matches:
+        clean_all = body.strip()
+        if not clean_all:
+            return []
+        lead = len(body) - len(body.lstrip())
+        start = body_offset + lead
+        return [
+            {
+                "section_index": 1,
+                "section_title": "Nội dung tài liệu",
+                "section_text": clean_all,
+                "char_start": start,
+                "char_end": start + len(clean_all),
+            }
+        ]
+
+    sections: list[dict] = []
+    for idx, m in enumerate(matches):
+        sec_title = (m.group("h2") or m.group("num") or "").strip()
+        raw_start = m.end()
+        if raw_start < len(body) and body[raw_start] == "\n":
+            raw_start += 1
+        raw_end = matches[idx + 1].start() if idx + 1 < len(matches) else len(body)
+        chunk_slice = body[raw_start:raw_end]
+        clean_text = chunk_slice.strip()
+        if not clean_text:
+            continue
+        lead = len(chunk_slice) - len(chunk_slice.lstrip())
+        abs_start = body_offset + raw_start + lead
+        abs_end = abs_start + len(clean_text)
+        sections.append(
+            {
+                "section_index": len(sections) + 1,
+                "section_title": sec_title,
+                "section_text": clean_text,
+                "char_start": abs_start,
+                "char_end": abs_end,
+            }
+        )
+    return sections
 
 
 def find_sku_tokens(text: str) -> set[str]:

@@ -5,9 +5,12 @@ import unittest
 from pathlib import Path
 
 from pypdf import PdfReader
+from reportlab.pdfgen import canvas
 
-from shop_db.corpus_errors import CorpusFileIntegrityError
+from shop_db import corpus_service as corpus
+from shop_db.corpus_errors import CorpusAccessDenied, CorpusFileIntegrityError
 from shop_db.corpus_files import (
+    extract_sections,
     find_hardcoded_stock,
     find_sku_tokens,
     fingerprint,
@@ -18,6 +21,7 @@ from shop_db.corpus_files import (
 )
 from shop_db.corpus_pdf import (
     REPO_ROOT,
+    _ensure_fonts_registered,
     build_corpus_pdfs,
     check_corpus_pdfs,
     export_manifest_pdf,
@@ -25,6 +29,9 @@ from shop_db.corpus_pdf import (
     main as pdf_cli_main,
     render_markdown_to_pdf_bytes,
 )
+from shop_db.db import connect, migrate
+from shop_db.seed import seed_catalog
+from shop_db.sku_sync_service import register_pdf_document, sync_from_manifest
 from tests.corpus_helpers import MANIFEST_V1_0, MANIFEST_V1_1, copy_corpus_to_tmp
 
 
@@ -161,6 +168,131 @@ data_notice: Dữ liệu mô phỏng cho mini-project, không phải dữ liệu
 
             out_pdf = export_manifest_pdf(tmp_root / "data_config" / "corpus_manifest_v1.1.json")
             self.assertTrue(out_pdf.is_file())
+
+    def test_06_pdf_texts_and_sections_stored_directly_in_sqlite_db(self):
+        conn = connect(":memory:")
+        try:
+            migrate(conn)
+            seed_catalog(conn)
+            res = sync_from_manifest(conn, MANIFEST_V1_0, repo_root=REPO_ROOT)
+            self.assertEqual(res["sections_indexed"], 85)
+            self.assertEqual(corpus.corpus_status(conn)["sections_active"], 85)
+
+            # Toàn bộ 18 file PDF gốc vẫn giữ nguyên trên đĩa
+            self.assertEqual(len(list((REPO_ROOT / "data_config" / "corpus").rglob("*.pdf"))), 18)
+
+            # Đọc trực tiếp văn bản và các mục đã bóc từ SQLite DB (không cần mở lại PDF)
+            bag_doc = corpus.get_document_text(conn, "DOC-PRD-006", role="customer")
+            self.assertIn("Balo laptop", bag_doc["content_text"])
+            self.assertIn("BAG-GRY-15", bag_doc["body_text"])
+            war_doc = corpus.get_document_text(conn, "DOC-POL-WARRANTY", role="customer")
+            self.assertIn("12 tháng", war_doc["body_text"])
+            self.assertGreaterEqual(len(bag_doc["sections"]), 4)
+            for sec in bag_doc["sections"]:
+                self.assertEqual(
+                    bag_doc["content_text"][sec["char_start"]:sec["char_end"]],
+                    sec["section_text"],
+                )
+
+            # Kiểm tra phân quyền ngay trong truy vấn văn bản DB
+            with self.assertRaises(CorpusAccessDenied):
+                corpus.get_document_text(conn, "DOC-ADM-HR-POLICY", role="customer")
+            with self.assertRaises(CorpusAccessDenied):
+                corpus.list_document_sections(conn, role="customer", doc_id="DOC-INT-PROMO-RULES")
+
+            cust_texts = corpus.list_corpus_texts(conn, role="customer")
+            self.assertEqual(len(cust_texts), 12)
+            self.assertTrue(all(d["content_text"].strip() and len(d["sections"]) >= 3 for d in cust_texts))
+
+            # Nâng cấp lên v1.1: DB lưu cả text bản 1.0 lẫn 1.1 của DOC-POL-RETURN
+            res_11 = sync_from_manifest(conn, MANIFEST_V1_1, repo_root=REPO_ROOT)
+            self.assertEqual(res_11["sections_indexed"], 86)
+            v10_txt = corpus.get_document_text(conn, "DOC-POL-RETURN", role="customer", version="1.0")
+            v11_txt = corpus.get_document_text(conn, "DOC-POL-RETURN", role="customer", version="1.1")
+            self.assertIn("7 ngày", v10_txt["body_text"])
+            self.assertIn("14 ngày", v11_txt["body_text"])
+        finally:
+            conn.close()
+
+    def test_07_external_arbitrary_pdf_auto_extracted_into_db_without_text_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_root = copy_corpus_to_tmp(tmp)
+            font_reg, font_bold = _ensure_fonts_registered()
+
+            # 1) PDF bên ngoài có đề mục kiểu văn bản hành chính ("Điều 1.", "Điều 2."), KHÔNG có front-matter
+            ext_pdf = tmp_root / "data_config" / "corpus" / "guides" / "cam_nang_giat_ui_ngoai.pdf"
+            buf = io.BytesIO()
+            c = canvas.Canvas(buf)
+            c.setFont(font_bold, 14)
+            c.drawString(50, 780, "Cẩm nang bảo quản trang phục mùa mưa")
+            c.setFont(font_bold, 12)
+            c.drawString(50, 750, "Điều 1. Quy tắc phơi trang phục")
+            c.setFont(font_reg, 11)
+            c.drawString(50, 732, "Phơi nơi thoáng gió, tránh ánh nắng gắt trực tiếp lên sợi vải.")
+            c.setFont(font_bold, 12)
+            c.drawString(50, 704, "Điều 2. Quy tắc giặt và ngâm")
+            c.setFont(font_reg, 11)
+            c.drawString(50, 686, "Không ngâm chung quần áo màu đậm với áo trắng quá 15 phút.")
+            c.save()
+            ext_bytes = buf.getvalue()
+            ext_pdf.write_bytes(ext_bytes)
+
+            # 2) PDF bên ngoài dạng đoạn văn tự do hoàn toàn KHÔNG có bất kỳ tiêu đề mục nào
+            plain_pdf = tmp_root / "data_config" / "corpus" / "guides" / "ghi_chu_dong_goi_ngoai.pdf"
+            buf2 = io.BytesIO()
+            c2 = canvas.Canvas(buf2)
+            c2.setFont(font_reg, 11)
+            c2.drawString(50, 780, "Mọi kiện hàng phụ kiện đều được bọc chống sốc hai lớp trước khi bàn giao bưu cục.")
+            c2.save()
+            plain_pdf.write_bytes(buf2.getvalue())
+
+            mpath = tmp_root / "data_config" / "corpus_manifest_v1.1.json"
+            reg = register_pdf_document(
+                ext_pdf,
+                mpath,
+                doc_id="DOC-GDE-RAIN-CARE",
+                title="Cẩm nang bảo quản trang phục mùa mưa",
+                doc_type="guide",
+                category="general",
+                access_level="public",
+                version="1.0",
+                repo_root=tmp_root,
+            )
+            self.assertEqual(reg["sections_extracted"], 2)
+            # File PDF gốc bên ngoài hoàn toàn không bị mất hay biến đổi byte nào
+            self.assertEqual(ext_pdf.read_bytes(), ext_bytes)
+
+            reg_plain = register_pdf_document(
+                plain_pdf,
+                mpath,
+                doc_id="DOC-GDE-PACKING-NOTE",
+                title="Ghi chú đóng gói phụ kiện",
+                doc_type="guide",
+                category="general",
+                access_level="public",
+                version="1.0",
+                repo_root=tmp_root,
+            )
+            self.assertEqual(reg_plain["sections_extracted"], 1)
+
+            conn = connect(":memory:")
+            try:
+                migrate(conn)
+                seed_catalog(conn)
+                sync_res = sync_from_manifest(conn, mpath, repo_root=tmp_root)
+                self.assertEqual(sync_res["documents_active"], 19)
+
+                ext_db = corpus.get_document(conn, "DOC-GDE-RAIN-CARE", role="customer", include_content=True)
+                self.assertIn("thoáng gió", ext_db["body_text"])
+                self.assertEqual(len(ext_db["sections"]), 2)
+                self.assertEqual(parse_front_matter(ext_db["content_text"])["doc_id"], "DOC-GDE-RAIN-CARE")
+                self.assertEqual(len(extract_sections(ext_db["content_text"])), 2)
+
+                plain_db = corpus.get_document_text(conn, "DOC-GDE-PACKING-NOTE", role="customer")
+                self.assertIn("chống sốc hai lớp", plain_db["body_text"])
+                self.assertEqual(len(plain_db["sections"]), 1)
+            finally:
+                conn.close()
 
 
 if __name__ == "__main__":

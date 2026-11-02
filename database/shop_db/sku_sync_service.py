@@ -21,6 +21,8 @@ from .corpus_errors import (
     SkuSyncMismatch,
 )
 from .corpus_files import (
+    extract_body_text,
+    extract_sections,
     find_hardcoded_stock,
     find_sku_tokens,
     fingerprint,
@@ -235,17 +237,22 @@ def _validate_manifest_internal(manifest: dict, repo_root: Path) -> tuple[dict, 
                  f"Kích thước bytes lệch: manifest={expected_size}, thực tế={actual_size}")
 
         fm = parse_front_matter(text)
-        missing_fm = [k for k in REQUIRED_FRONT_MATTER_KEYS if not fm.get(k)]
-        mismatched_fm = [k for k in FRONT_MATTER_SYNC_KEYS if fm.get(k) != str(doc[k])]
-        if missing_fm or mismatched_fm:
-            _err(errors, "front_matter_mismatch", doc_id,
-                 f"Front matter thiếu {missing_fm} hoặc lệch manifest ở {mismatched_fm}")
+        if is_pdf_src and not fm:
+            # PDF bên ngoài (xuất từ Word/Google Docs...) không nhúng khung metadata đầu trang:
+            # sử dụng trực tiếp metadata đã khai báo trong manifest JSON mà không cần tạo file text phụ.
+            pass
+        else:
+            missing_fm = [k for k in REQUIRED_FRONT_MATTER_KEYS if not fm.get(k)]
+            mismatched_fm = [k for k in FRONT_MATTER_SYNC_KEYS if fm.get(k) != str(doc[k])]
+            if missing_fm or mismatched_fm:
+                _err(errors, "front_matter_mismatch", doc_id,
+                     f"Front matter thiếu {missing_fm} hoặc lệch manifest ở {mismatched_fm}")
 
         secs = section_titles(text)
         total_sections += len(secs)
         if doc["access_level"] == "public":
             public_sections += len(secs)
-        if len(secs) < 3:
+        if len(secs) < 3 and not (is_pdf_src and not fm):
             _warn(warnings, "few_sections", doc_id, f"Tài liệu chỉ có {len(secs)} section (< 3)")
 
         declared_skus = {s for s in doc["skus"] if isinstance(s, str)}
@@ -278,14 +285,12 @@ def _validate_manifest_internal(manifest: dict, repo_root: Path) -> tuple[dict, 
 
 
 def validate_manifest(manifest: dict, repo_root: Path = REPO_ROOT) -> dict:
-    """Kiểm tra độc lập manifest và toàn bộ file Markdown (không cần SQLite)."""
+    """Kiểm tra độc lập manifest và toàn bộ file PDF/Markdown (không cần SQLite)."""
     report, _ = _validate_manifest_internal(manifest, Path(repo_root))
     return report
 
 
-def verify_catalog_sync(conn, manifest: dict, repo_root: Path = REPO_ROOT) -> dict:
-    """Kiểm tra toàn diện manifest + nội dung file đối chiếu với catalog SQLite."""
-    root = Path(repo_root)
+def _verify_catalog_sync_internal(conn, manifest: dict, root: Path) -> tuple[dict, dict[str, str]]:
     report, loaded_texts = _validate_manifest_internal(manifest, root)
     errors = report["errors"]
 
@@ -424,7 +429,98 @@ def verify_catalog_sync(conn, manifest: dict, repo_root: Path = REPO_ROOT) -> di
                  f"Sản phẩm đang bán id={pid} ({prod['name']}) chưa có tài liệu product_spec public active")
 
     report["ok"] = len(errors) == 0
+    return report, loaded_texts
+
+
+def verify_catalog_sync(conn, manifest: dict, repo_root: Path = REPO_ROOT) -> dict:
+    """Kiểm tra toàn diện manifest + nội dung file đối chiếu với catalog SQLite."""
+    report, _ = _verify_catalog_sync_internal(conn, manifest, Path(repo_root))
     return report
+
+
+def _ensure_corpus_text_schema(conn) -> None:
+    """Đảm bảo các cột/bảng lưu văn bản trích xuất từ PDF luôn sẵn sàng kể cả trên DB cũ."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(corpus_document_versions)").fetchall()}
+    if "content_text" not in cols:
+        conn.execute("ALTER TABLE corpus_document_versions ADD COLUMN content_text TEXT NOT NULL DEFAULT ''")
+    if "body_text" not in cols:
+        conn.execute("ALTER TABLE corpus_document_versions ADD COLUMN body_text TEXT NOT NULL DEFAULT ''")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS corpus_document_sections (
+            id             INTEGER PRIMARY KEY,
+            version_id     INTEGER NOT NULL REFERENCES corpus_document_versions(id) ON DELETE CASCADE,
+            doc_id         TEXT    NOT NULL REFERENCES corpus_documents(doc_id) ON DELETE CASCADE,
+            version        TEXT    NOT NULL,
+            section_index  INTEGER NOT NULL CHECK (section_index >= 1),
+            section_title  TEXT    NOT NULL,
+            section_text   TEXT    NOT NULL,
+            char_start     INTEGER NOT NULL CHECK (char_start >= 0),
+            char_end       INTEGER NOT NULL CHECK (char_end >= char_start),
+            UNIQUE (doc_id, version, section_index)
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_corpus_sections_doc_ver"
+        " ON corpus_document_sections(doc_id, version, section_index)"
+    )
+    conn.execute(
+        """
+        CREATE VIEW IF NOT EXISTS v_corpus_active_sections AS
+        SELECT d.doc_id, d.title, d.doc_type, d.category, d.access_level,
+               v.version, v.source_path,
+               s.section_index, s.section_title, s.section_text, s.char_start, s.char_end
+        FROM corpus_documents d
+        JOIN corpus_document_versions v ON v.doc_id = d.doc_id AND v.is_active = 1
+        JOIN corpus_document_sections s ON s.version_id = v.id
+        WHERE d.is_active = 1
+        """
+    )
+
+
+def _prepare_db_content(doc: dict, extracted_text: str) -> tuple[str, str, list[dict]]:
+    """Chuẩn hóa nội dung văn bản đã bóc từ PDF để lưu thẳng vào SQLite (kèm các mục section)."""
+    if not parse_front_matter(extracted_text):
+        header = (
+            "---\n"
+            f"doc_id: {doc['doc_id']}\n"
+            f"title: {doc['title']}\n"
+            f"version: {doc['version']}\n"
+            f"access_level: {doc['access_level']}\n"
+            f"author: {doc['author']}\n"
+            f"effective_date: {doc['effective_date']}\n"
+            "data_notice: Giá bán thực tế, tồn kho hiện hành và trạng thái mở bán được truy xuất trực tiếp từ cơ sở dữ liệu cửa hàng.\n"
+            "---\n"
+        )
+        content_text = header + extracted_text.lstrip("\n")
+    else:
+        content_text = extracted_text
+    body_text = extract_body_text(content_text)
+    sections = extract_sections(content_text)
+    return content_text, body_text, sections
+
+
+def _save_version_sections(conn, version_id: int, doc_id: str, version: str, sections: list[dict]) -> None:
+    conn.execute("DELETE FROM corpus_document_sections WHERE version_id = ?", (version_id,))
+    for sec in sections:
+        conn.execute(
+            """
+            INSERT INTO corpus_document_sections
+                (version_id, doc_id, version, section_index, section_title, section_text, char_start, char_end)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (
+                version_id,
+                doc_id,
+                version,
+                sec["section_index"],
+                sec["section_title"],
+                sec["section_text"],
+                sec["char_start"],
+                sec["char_end"],
+            ),
+        )
 
 
 def _log_sync_event(conn, actor_type: str, actor_id: str, event_type: str, corpus_release, details: dict) -> None:
@@ -455,7 +551,7 @@ def sync_from_manifest(
     actor_id: str = "tv1-sync",
     repo_root: Path = REPO_ROOT,
 ) -> dict:
-    """Đồng bộ nguyên tử toàn bộ metadata corpus từ manifest JSON vào SQLite."""
+    """Đồng bộ nguyên tử toàn bộ metadata + văn bản trích xuất từ PDF vào SQLite."""
     if actor_type not in SYNC_ACTOR_TYPES:
         raise CorpusValidationError("actor_type không hợp lệ", actor_type=actor_type)
     if not isinstance(actor_id, str) or not actor_id.strip():
@@ -466,7 +562,7 @@ def sync_from_manifest(
     manifest = load_manifest(mpath)
     manifest_rel, manifest_sha = _manifest_rel_and_hash(mpath, root)
 
-    report = verify_catalog_sync(conn, manifest, repo_root=root)
+    report, loaded_texts = _verify_catalog_sync_internal(conn, manifest, root)
     release = manifest["corpus_release"]
 
     if not report["ok"]:
@@ -493,12 +589,17 @@ def sync_from_manifest(
     deactivated: list[str] = []
     versions_changed: list[dict] = []
     manifest_doc_ids: set[str] = set()
+    sections_indexed = 0
 
     with transaction(conn):
+        _ensure_corpus_text_schema(conn)
         for doc in manifest["documents"]:
             doc_id = doc["doc_id"]
             ver = doc["version"]
             manifest_doc_ids.add(doc_id)
+
+            content_text, body_text, doc_sections = _prepare_db_content(doc, loaded_texts[doc_id])
+            sections_indexed += len(doc_sections)
 
             prev_doc = conn.execute(
                 "SELECT active_version, is_active FROM corpus_documents WHERE doc_id = ?",
@@ -506,7 +607,8 @@ def sync_from_manifest(
             ).fetchone()
 
             existing_ver = conn.execute(
-                "SELECT id, content_sha256 FROM corpus_document_versions WHERE doc_id = ? AND version = ?",
+                "SELECT id, content_sha256, content_text FROM corpus_document_versions"
+                " WHERE doc_id = ? AND version = ?",
                 (doc_id, ver),
             ).fetchone()
             if existing_ver is not None and existing_ver["content_sha256"] != doc["content_sha256"]:
@@ -548,12 +650,12 @@ def sync_from_manifest(
                 (doc_id, ver),
             )
             if existing_ver is None:
-                conn.execute(
+                cur = conn.execute(
                     """
                     INSERT INTO corpus_document_versions
                         (doc_id, version, source_path, author, content_sha256, file_size_bytes,
-                         effective_date, change_note, first_release, is_active)
-                    VALUES (?,?,?,?,?,?,?,?,?,1)
+                         effective_date, change_note, first_release, content_text, body_text, is_active)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,1)
                     """,
                     (
                         doc_id,
@@ -565,13 +667,31 @@ def sync_from_manifest(
                         doc["effective_date"],
                         doc["change_note"],
                         release,
+                        content_text,
+                        body_text,
                     ),
                 )
+                _save_version_sections(conn, cur.lastrowid, doc_id, ver, doc_sections)
             else:
-                conn.execute(
-                    "UPDATE corpus_document_versions SET is_active = 1 WHERE id = ?",
-                    (existing_ver["id"],),
-                )
+                ver_id = existing_ver["id"]
+                if not existing_ver["content_text"]:
+                    conn.execute(
+                        "UPDATE corpus_document_versions"
+                        " SET is_active = 1, content_text = ?, body_text = ? WHERE id = ?",
+                        (content_text, body_text, ver_id),
+                    )
+                    _save_version_sections(conn, ver_id, doc_id, ver, doc_sections)
+                else:
+                    conn.execute(
+                        "UPDATE corpus_document_versions SET is_active = 1 WHERE id = ?",
+                        (ver_id,),
+                    )
+                    sec_cnt = conn.execute(
+                        "SELECT COUNT(*) FROM corpus_document_sections WHERE version_id = ?",
+                        (ver_id,),
+                    ).fetchone()[0]
+                    if sec_cnt == 0:
+                        _save_version_sections(conn, ver_id, doc_id, ver, doc_sections)
 
             conn.execute("DELETE FROM corpus_document_products WHERE doc_id = ?", (doc_id,))
             for pid in doc["product_ids"]:
@@ -635,6 +755,7 @@ def sync_from_manifest(
             {
                 "release": release,
                 "documents": len(manifest["documents"]),
+                "sections_indexed": sections_indexed,
                 "activated": activated,
                 "deactivated": deactivated,
             },
@@ -643,8 +764,101 @@ def sync_from_manifest(
     return {
         "corpus_release": release,
         "documents_active": len(manifest["documents"]),
+        "sections_indexed": sections_indexed,
         "versions_changed": versions_changed,
         "report": report,
+    }
+
+
+def register_pdf_document(
+    pdf_path,
+    manifest_path=None,
+    *,
+    doc_id: str | None = None,
+    title: str | None = None,
+    doc_type: str = "guide",
+    category: str = "general",
+    access_level: str | None = None,
+    version: str | None = None,
+    author: str | None = None,
+    effective_date: str = "2026-11-02",
+    catalog_status: str = "not_applicable",
+    product_ids: list[int] | None = None,
+    skus: list[str] | None = None,
+    change_note: str = "Bổ sung tài liệu PDF mới",
+    repo_root: Path = REPO_ROOT,
+) -> dict:
+    """Đăng ký hoặc cập nhật một file PDF bất kỳ trong `data_config/corpus/` vào manifest JSON.
+
+    Tự động đọc trực tiếp file PDF (không cần tạo sẵn file `.md`/`.txt`), tính SHA-256/kích thước
+    nhị phân và trích xuất kiểm tra văn bản/sections. File PDF gốc được giữ nguyên tuyệt đối.
+    """
+    root = Path(repo_root)
+    p = Path(pdf_path)
+    if not p.is_absolute():
+        p = root / p
+    try:
+        rel_source = p.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError as exc:
+        raise CorpusValidationError("File PDF phải nằm bên trong thư mục dự án", path=str(pdf_path)) from exc
+
+    if not _is_valid_source_path(rel_source, root) or not rel_source.endswith(".pdf"):
+        raise CorpusValidationError(
+            "File PDF phải đặt trong data_config/corpus/... và có đuôi .pdf",
+            source_path=rel_source,
+        )
+
+    text, raw_bytes = read_normalized(p)
+    fm = parse_front_matter(text)
+    sections = extract_sections(text)
+
+    resolved_doc_id = (doc_id or fm.get("doc_id") or "").strip()
+    if not resolved_doc_id or not _DOC_ID_RE.match(resolved_doc_id):
+        raise CorpusValidationError("Cần cung cấp doc_id hợp lệ dạng DOC-...", doc_id=resolved_doc_id)
+
+    resolved_title = (title or fm.get("title") or p.stem.replace("_", " ").title()).strip()
+    resolved_access = (access_level or fm.get("access_level") or "public").strip()
+    resolved_version = (version or fm.get("version") or "1.0").strip()
+    resolved_author = (author or fm.get("author") or "TV1").strip()
+    resolved_date = (fm.get("effective_date") or effective_date).strip()
+    detected_skus = sorted(find_sku_tokens(text)) if skus is None else list(skus)
+
+    entry = {
+        "doc_id": resolved_doc_id,
+        "title": resolved_title,
+        "doc_type": doc_type,
+        "category": category,
+        "access_level": resolved_access,
+        "version": resolved_version,
+        "author": resolved_author,
+        "source_path": rel_source,
+        "effective_date": resolved_date,
+        "encoding": "pdf",
+        "content_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+        "file_size_bytes": len(raw_bytes),
+        "catalog_status": catalog_status,
+        "product_ids": list(product_ids or []),
+        "skus": detected_skus,
+        "change_note": change_note,
+    }
+
+    mpath = Path(manifest_path) if manifest_path is not None else get_default_manifest_path(root)
+    manifest = load_manifest(mpath)
+    updated_existing = False
+    for idx, existing in enumerate(manifest["documents"]):
+        if existing.get("doc_id") == resolved_doc_id:
+            manifest["documents"][idx] = entry
+            updated_existing = True
+            break
+    if not updated_existing:
+        manifest["documents"].append(entry)
+
+    mpath.write_bytes((json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    return {
+        "entry": entry,
+        "updated_existing": updated_existing,
+        "sections_extracted": len(sections),
+        "characters_extracted": len(text),
     }
 
 
@@ -708,10 +922,17 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Kiểm tra và đồng bộ Corpus Metadata & SKU (TV1)")
     group = ap.add_mutually_exclusive_group(required=True)
     group.add_argument("--check", action="store_true", help="Kiểm tra manifest và đối soát SKU với catalog")
-    group.add_argument("--sync", action="store_true", help="Đồng bộ manifest vào SQLite")
+    group.add_argument("--sync", action="store_true", help="Đồng bộ manifest + văn bản trích xuất từ PDF vào SQLite")
     group.add_argument("--fingerprints", action="store_true", help="In SHA-256 và kích thước chuẩn hóa của các file")
+    group.add_argument("--register-pdf", metavar="PDF_PATH", help="Đăng ký file PDF mới vào manifest JSON")
     ap.add_argument("--manifest", help="Đường dẫn file manifest JSON")
     ap.add_argument("--db", help="Đường dẫn SQLite DB")
+    ap.add_argument("--doc-id", help="Mã doc_id (dùng cùng --register-pdf nếu PDF ngoài chưa có header)")
+    ap.add_argument("--title", help="Tiêu đề tài liệu (dùng cùng --register-pdf)")
+    ap.add_argument("--doc-type", default="guide", help="Loại tài liệu (mặc định: guide)")
+    ap.add_argument("--category", default="general", help="Nhóm danh mục (mặc định: general)")
+    ap.add_argument("--access-level", help="Phân quyền public | staff | admin (mặc định: public)")
+    ap.add_argument("--version", help="Phiên bản tài liệu (mặc định: 1.0)")
     ap.add_argument("--json", action="store_true", help="In report dạng JSON đầy đủ")
     args = ap.parse_args(argv)
 
@@ -719,6 +940,21 @@ def main(argv=None) -> int:
         return _print_fingerprints(args.manifest, REPO_ROOT)
 
     mpath = Path(args.manifest) if args.manifest else get_default_manifest_path(REPO_ROOT)
+
+    if args.register_pdf:
+        reg = register_pdf_document(
+            args.register_pdf,
+            mpath,
+            doc_id=args.doc_id,
+            title=args.title,
+            doc_type=args.doc_type,
+            category=args.category,
+            access_level=args.access_level,
+            version=args.version,
+            repo_root=REPO_ROOT,
+        )
+        print(json.dumps(reg, ensure_ascii=False, indent=2))
+        return 0
 
     if args.check:
         manifest = load_manifest(mpath)
@@ -751,6 +987,7 @@ def main(argv=None) -> int:
         else:
             print(f"Đã đồng bộ release {result['corpus_release']}: "
                   f"{result['documents_active']} tài liệu active, "
+                  f"{result['sections_indexed']} mục văn bản PDF đã lưu DB, "
                   f"{len(result['versions_changed'])} thay đổi version.")
         return 0
     finally:

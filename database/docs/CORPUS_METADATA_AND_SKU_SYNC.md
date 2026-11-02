@@ -92,11 +92,13 @@ erDiagram
 |---|---|---|
 | `corpus_releases` | PK `release`; partial UNIQUE index chỉ cho phép **tối đa 1** dòng `is_active = 1` | Quản lý phiên bản phát hành corpus hiện hành (`1.0.0`, `1.1.0`) |
 | `corpus_documents` | PK `doc_id`; CHECK `doc_type`, `access_level`, `declared_catalog_status` | Danh mục tài liệu và phiên bản đang hoạt động (`active_version`) |
-| `corpus_document_versions` | UNIQUE `(doc_id, version)`; partial UNIQUE index chỉ cho phép **1 version `is_active = 1` trên mỗi `doc_id`** | Lưu vết toàn bộ lịch sử phiên bản, đường dẫn, tác giả, SHA-256, `change_note` |
+| `corpus_document_versions` | UNIQUE `(doc_id, version)`; partial UNIQUE index chỉ cho phép **1 version `is_active = 1` trên mỗi `doc_id`** | Lưu vết toàn bộ lịch sử phiên bản, đường dẫn `.pdf`, SHA-256, cùng **`content_text` / `body_text` đã bóc tự động từ PDF** |
+| `corpus_document_sections` | UNIQUE `(doc_id, version, section_index)`, FK tới `corpus_document_versions(id)` `ON DELETE CASCADE` | Lưu từng mục (section) đã tách sẵn từ PDF kèm vị trí ký tự `char_start` / `char_end` |
 | `corpus_document_products` | PK `(doc_id, product_id)`, FK tới `products(id)` `ON DELETE CASCADE` | Liên kết nhiều-nhiều giữa tài liệu và sản phẩm |
 | `corpus_document_skus` | PK `(doc_id, sku)`, FK tới `product_variants(sku)` `ON DELETE CASCADE` | Liên kết nhiều-nhiều giữa tài liệu và mã biến thể SKU |
 | `corpus_sync_events` | Trigger chặn `UPDATE` và `DELETE` (append-only) | Nhật ký kiểm toán các lần `sync_applied` / `sync_rejected` (đã qua `audit_service.sanitize`, không lưu nội dung tài liệu) |
-| `v_corpus_active_documents` | VIEW nối `corpus_documents` (`is_active=1`) và `corpus_document_versions` (`is_active=1`) | Nguồn truy vấn chuẩn cho các tài liệu đang có hiệu lực |
+| `v_corpus_active_documents` | VIEW nối `corpus_documents` (`is_active=1`) và `corpus_document_versions` (`is_active=1`) | Nguồn truy vấn chuẩn cho metadata các tài liệu đang có hiệu lực |
+| `v_corpus_active_sections` | VIEW nối `corpus_documents`, `corpus_document_versions`, `corpus_document_sections` (`is_active=1`) | Nguồn truy vấn trực tiếp các mục văn bản PDF đang active theo phân quyền |
 | `v_corpus_sku_status` | VIEW nối `corpus_document_skus`, `product_variants`, `products`, `corpus_documents` | Tính trực tiếp `live_sellable = (p.is_active = 1 AND pv.is_active = 1)`. Với `JKT-NVY-L` (`products.is_active = 0`, `product_variants.is_active = 1`), `live_sellable = 0` |
 
 ---
@@ -291,7 +293,14 @@ python -m database.shop_db.sku_sync_service --sync --db /tmp/shop_demo.db --mani
 
 # 5. Rollback về release 1.0.0 (kích hoạt lại DOC-POL-RETURN v1.0 nguyên tử, không sinh bản ghi trùng)
 python -m database.shop_db.sku_sync_service --sync --db /tmp/shop_demo.db --manifest data_config/corpus_manifest_v1.0.json
+
+# 6. Nhét thêm một file PDF bên ngoài bất kỳ (Word/Google Docs...) vào data_config/corpus/ và tự động đăng ký + bóc text vào DB
+python -m database.shop_db.sku_sync_service --register-pdf data_config/corpus/guides/file_moi.pdf --doc-id DOC-GDE-NEW --title "Hướng dẫn mới" --manifest data_config/corpus_manifest_v1.1.json
+python -m database.shop_db.sku_sync_service --sync --manifest data_config/corpus_manifest_v1.1.json
 ```
+
+> **Truy vấn trực tiếp văn bản đã trích xuất từ SQLite (không cần đọc lại PDF)**:
+> TV2 / TV3 có thể gọi `corpus_service.get_document_text(conn, doc_id, role)`, `corpus_service.list_document_sections(conn, role)`, hoặc `corpus_service.list_corpus_texts(conn, role)` để nhận ngay `content_text`, `body_text` và danh sách `sections` đã phân quyền theo `role` ngay trong SQLite.
 
 > **Lưu ý cho TV2 khi nâng cấp / rollback**: Sau mỗi bước `--sync` chuyển đổi giữa `v1.0` và `v1.1`, TV2 cần chạy quy trình build/switch vector index bundle tương ứng với `corpus_release` đang active để index và DB luôn đồng bộ.
 

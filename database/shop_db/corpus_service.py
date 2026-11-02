@@ -135,8 +135,8 @@ def check_document_access(conn, doc_id: str, role: str) -> dict:
     return {"allowed": True, "reason": "ok"}
 
 
-def get_document(conn, doc_id: str, role: str) -> dict:
-    """Đọc chi tiết metadata của một tài liệu active theo `role`."""
+def get_document(conn, doc_id: str, role: str, *, include_content: bool = False) -> dict:
+    """Đọc chi tiết metadata (và tùy chọn nội dung văn bản đã bóc từ PDF) của tài liệu active theo `role`."""
     clean_id = _validate_doc_id(doc_id)
     chk = check_document_access(conn, clean_id, role)
     if not chk["allowed"]:
@@ -148,7 +148,104 @@ def get_document(conn, doc_id: str, role: str) -> dict:
         "SELECT * FROM v_corpus_active_documents WHERE doc_id = ?",
         (clean_id,),
     ).fetchone()
-    return _attach_links(conn, [row])[0]
+    doc_dict = _attach_links(conn, [row])[0]
+    if include_content:
+        txt_data = get_document_text(conn, clean_id, role)
+        doc_dict["content_text"] = txt_data["content_text"]
+        doc_dict["body_text"] = txt_data["body_text"]
+        doc_dict["sections"] = txt_data["sections"]
+    return doc_dict
+
+
+def get_document_text(conn, doc_id: str, role: str, *, version: str | None = None) -> dict:
+    """Lấy trực tiếp văn bản đã trích xuất từ PDF + các mục section lưu sẵn trong SQLite theo `role`."""
+    levels = allowed_access_levels(role)
+    clean_id = _validate_doc_id(doc_id)
+
+    doc_row = conn.execute(
+        "SELECT doc_id, title, doc_type, category, access_level, active_version, is_active"
+        " FROM corpus_documents WHERE doc_id = ?",
+        (clean_id,),
+    ).fetchone()
+    if doc_row is None:
+        raise CorpusNotFound("Không tìm thấy tài liệu", doc_id=clean_id)
+    if doc_row["access_level"] not in levels:
+        raise CorpusAccessDenied("Không có quyền đọc nội dung tài liệu này", doc_id=clean_id, role=role)
+    if version is None and doc_row["is_active"] == 0:
+        raise CorpusNotFound("Tài liệu hiện không còn hoạt động", doc_id=clean_id, reason="inactive")
+
+    if version is not None and (not isinstance(version, str) or not version.strip()):
+        raise CorpusValidationError("version không hợp lệ", field="version")
+    target_version = version.strip() if isinstance(version, str) and version.strip() else doc_row["active_version"]
+    if not target_version:
+        raise CorpusNotFound("Tài liệu hiện không có phiên bản đang hoạt động", doc_id=clean_id)
+
+    ver_row = conn.execute(
+        "SELECT id, version, source_path, content_sha256, content_text, body_text, is_active"
+        " FROM corpus_document_versions WHERE doc_id = ? AND version = ?",
+        (clean_id, target_version),
+    ).fetchone()
+    if ver_row is None:
+        raise CorpusNotFound("Không tìm thấy phiên bản tài liệu", doc_id=clean_id, version=target_version)
+
+    sec_rows = conn.execute(
+        "SELECT section_index, section_title, section_text, char_start, char_end"
+        " FROM corpus_document_sections WHERE version_id = ? ORDER BY section_index ASC",
+        (ver_row["id"],),
+    ).fetchall()
+
+    return {
+        "doc_id": doc_row["doc_id"],
+        "title": doc_row["title"],
+        "doc_type": doc_row["doc_type"],
+        "category": doc_row["category"],
+        "access_level": doc_row["access_level"],
+        "version": ver_row["version"],
+        "source_path": ver_row["source_path"],
+        "content_sha256": ver_row["content_sha256"],
+        "is_active_version": bool(doc_row["is_active"] == 1 and ver_row["is_active"] == 1),
+        "content_text": ver_row["content_text"],
+        "body_text": ver_row["body_text"],
+        "sections": [dict(s) for s in sec_rows],
+    }
+
+
+def list_document_sections(conn, role: str, *, doc_id: str | None = None) -> list[dict]:
+    """Liệt kê các mục (section) văn bản đã bóc sẵn từ PDF của các tài liệu active theo `role`."""
+    levels = allowed_access_levels(role)
+    lvl_placeholders = ",".join("?" for _ in levels)
+    sql = f"SELECT * FROM v_corpus_active_sections WHERE access_level IN ({lvl_placeholders})"
+    params: list = list(levels)
+
+    if doc_id is not None:
+        clean_id = _validate_doc_id(doc_id)
+        chk = check_document_access(conn, clean_id, role)
+        if not chk["allowed"]:
+            if chk["reason"] == "access_denied":
+                raise CorpusAccessDenied("Không có quyền đọc mục tài liệu này", doc_id=clean_id, role=role)
+            raise CorpusNotFound("Tài liệu không tồn tại hoặc không còn hoạt động",
+                                 doc_id=clean_id, reason=chk["reason"])
+        sql += " AND doc_id = ?"
+        params.append(clean_id)
+
+    sql += " ORDER BY doc_id ASC, section_index ASC"
+    return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+
+def list_corpus_texts(conn, role: str) -> list[dict]:
+    """Lấy toàn bộ danh sách tài liệu active kèm văn bản & sections đã trích xuất sẵn trong SQLite."""
+    docs = list_documents(conn, role)
+    if not docs:
+        return []
+    out = []
+    for doc in docs:
+        txt = get_document_text(conn, doc["doc_id"], role, version=doc["version"])
+        merged = dict(doc)
+        merged["content_text"] = txt["content_text"]
+        merged["body_text"] = txt["body_text"]
+        merged["sections"] = txt["sections"]
+        out.append(merged)
+    return out
 
 
 def resolve_citation(
@@ -276,11 +373,14 @@ def corpus_status(conn) -> dict:
         last_event = dict(ev)
         last_event["details"] = json.loads(last_event["details"]) if last_event["details"] else {}
 
+    sections_active = conn.execute("SELECT COUNT(*) FROM v_corpus_active_sections").fetchone()[0]
+
     return {
         "active_release": rel["release"] if rel else None,
         "manifest_path": rel["manifest_path"] if rel else None,
         "synced_at": rel["synced_at"] if rel else None,
         "documents_by_access": counts,
+        "sections_active": sections_active,
         "last_event": last_event,
     }
 
