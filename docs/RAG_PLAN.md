@@ -1,6 +1,6 @@
 # Kế hoạch mở rộng RAG
 
-> **Trạng thái cập nhật 02/11/2026:** P1–P8 đã được tích hợp vào branch hiện tại cùng giao diện React mới. Kết quả và bằng chứng nằm trong [README](../README.md#rag-tra-cứu-tài-liệu-có-trích-dẫn), [kiến trúc](architecture.md), [evaluation](../artifacts/evaluation_report.md), [error analysis tự động](EVALUATION_WORKFLOW.md) và [re-index](../artifacts/reindex_report.md). Bảng “Hiện trạng trước triển khai” bên dưới được giữ lại để giải thích lý do của từng giai đoạn.
+> **Trạng thái cập nhật 02/11/2026:** P1–P8 đã được tích hợp vào branch hiện tại cùng giao diện React mới. Kết quả và bằng chứng nằm trong [README](../README.md#rag-tra-cứu-tài-liệu-có-trích-dẫn), [kiến trúc](architecture.md), [evaluation](../artifacts/evaluation_report.md), [error analysis tự động](EVALUATION_WORKFLOW.md), [re-index](../artifacts/reindex_report.md) và [demo](../demo.md). Bảng “Hiện trạng trước triển khai” bên dưới được giữ lại để giải thích lý do của từng giai đoạn.
 
 Đối chiếu với đề `rag-extension-live-commerce-order-assistant.pdf` (ký hiệu §x là mục trong đề) và code nhánh `backend` tại commit `4181d29` (29/10/2026).
 
@@ -210,6 +210,7 @@ flowchart LR
 | `artifacts/evaluation_cases.jsonl`, `relevance_judgments.jsonl`, `evaluation_report.md`, `reindex_report.md` | Mới (P6, P7) |
 | `tests/` | Thêm `tests/test_rag_*.py` |
 | `docs/architecture.md`, `README.md` | Cập nhật / mới (P8) |
+| `demo.md` | Kịch bản demo 10–12 phút |
 
 ---
 
