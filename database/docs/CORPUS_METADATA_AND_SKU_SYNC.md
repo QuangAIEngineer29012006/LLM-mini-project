@@ -11,9 +11,11 @@ Tài liệu đặc tả phần mở rộng cơ sở dữ liệu (SQLite schema v
    - **Manifest JSON** (`data_config/corpus_manifest_v1.0.json`, `v1.1.json`) là nguồn chuẩn duy nhất (*Single Source of Truth*) của metadata tài liệu RAG. Các bảng `corpus_*` trong SQLite chỉ là bản sao đã kiểm chứng, được nạp nguyên tử qua `sync_from_manifest()`.
    - **SQLite (`products`, `product_variants`, `inventory`)** là nguồn chuẩn duy nhất của trạng thái mở bán, giá hiện thời và số lượng tồn kho. Kết quả của RAG không bao giờ thay đổi đơn hàng, tồn kho hay giá.
 3. **Bất biến phiên bản `(doc_id, version)`**: Một cặp `(doc_id, version)` đã đồng bộ vào SQLite không được phép thay đổi `content_sha256`. Mọi thay đổi nội dung (hoặc cập nhật bảng giá tham khảo khi DB đổi giá) bắt buộc phát hành `version` mới để citation luôn trỏ đúng nội dung.
-4. **Chuẩn hóa đa nền tảng (Windows / Linux)**: Mọi file Markdown và manifest JSON dùng **UTF-8 không BOM**; hàm đọc chuẩn hóa `\r\n → \n` trước khi tính `content_sha256` và `file_size_bytes`.
+4. **Định dạng tài liệu PDF chuẩn Unicode & Đa nền tảng (Windows / Linux / macOS)**:
+   - Toàn bộ 18 tài liệu nguồn trong `data_config/corpus/` được lưu trữ dưới định dạng **PDF** (`data_config/corpus/**/*.pdf`, biên dịch tất định `invariant=1`, nhúng font TrueType Unicode tiếng Việt) và khai báo trực tiếp trong `source_path` của manifest (`encoding = "pdf"`, `content_sha256` và `file_size_bytes` tính trên byte nhị phân của file `.pdf`), kèm 2 bản báo cáo tổng hợp `data_config/corpus_manifest_v1.0.pdf` và `v1.1.pdf`. Khi cần biên tập lại nội dung, có thể khôi phục Markdown qua `corpus_pdf.extract_markdown_from_pdf()` rồi tái xuất qua `corpus_pdf.py`.
+   - Tầng đọc file (`corpus_files.py`, `sku_sync_service.py`, `corpus_service.py`) hỗ trợ cả `.pdf` và `.md`.
 5. **Điểm bàn giao cho TV2 & TV3**:
-   - **Thư mục dữ liệu (`D7`)**: Đặt tại `data_config/` ở thư mục gốc dự án (mặc định đọc biến môi trường `CORPUS_MANIFEST_PATH`, fallback về `data_config/corpus_manifest_v1.0.json`).
+   - **Thư mục dữ liệu (`D7`)**: Đặt tại `data_config/` ở thư mục gốc dự án (mặc định đọc biến môi trường `CORPUS_MANIFEST_PATH`, fallback về `data_config/corpus_manifest_v1.0.json`). Các file `.pdf` trình bày chuẩn văn bản doanh nghiệp (khung thông tin ISO tiếng Việt, đề mục đánh số `1.`, `2.` kèm PDF Outline Bookmarks, danh sách bullet `•`, không chứa cú pháp Markdown thô). TV2 có thể ingest trực tiếp bằng `pypdf` hoặc gọi `corpus_files.read_normalized(path)` / `section_titles(text)`.
    - **Helper phân quyền (`D6`)**: `corpus_service.py` cung cấp các hàm **chỉ-đọc (read-only)** lọc `access_level` ngay trong câu SQL để TV2 pre-filter trước khi xếp hạng vector và TV3 kiểm tra quyền/resolve citation.
    - **Khởi động runtime**: Backend hiện có gọi `migrate()` sẽ tự nâng DB lên schema v3 (bảng `corpus_*` rỗng). TV3 có thể gọi `ensure_corpus_seeded(conn)` khi khởi tạo ứng dụng nếu muốn tự nạp metadata `v1.0.0`.
 
@@ -118,27 +120,27 @@ Role khác chuỗi trên (hoặc kiểu dữ liệu không phải `str`) sẽ b�
 
 ### 4.1. Danh sách tài liệu (`data_config/corpus/`)
 
-Tổng cộng **17 `doc_id`** (tương ứng **18 file Markdown** do `DOC-POL-RETURN` có bản `v1.0` và `v1.1`), cung cấp **85 section `##`** ở release `1.0.0` (63 section `public`) và **86 section `##`** ở release `1.1.0` (64 section `public`):
+Tổng cộng **17 `doc_id`** (tương ứng **18 file PDF** do `DOC-POL-RETURN` có bản `v1.0` và `v1.1`), cung cấp **85 section** ở release `1.0.0` (63 section `public`) và **86 section** ở release `1.1.0` (64 section `public`):
 
-| `doc_id` | Loại (`doc_type`) | Quyền | Trạng thái catalog | `product_ids` | `skus` | Đường dẫn (`data_config/corpus/...`) |
+| `doc_id` | Loại (`doc_type`) | Quyền | Trạng thái catalog | `product_ids` | `skus` | Đường dẫn `source_path` (`data_config/corpus/...`) |
 |---|---|---|---|---|---|---|
-| `DOC-PRD-001` | `product_spec` | `public` | `active` | `[1]` | `TSH-BLK-M`, `TSH-BLK-L`, `TSH-WHT-M`, `TSH-WHT-L` | `products/prd_01_ao_thun_basic_cotton.md` |
-| `DOC-PRD-002` | `product_spec` | `public` | `active` | `[2]` | `HOD-GRY-M`, `HOD-GRY-L`, `HOD-BLK-L` | `products/prd_02_ao_hoodie_ni.md` |
-| `DOC-PRD-003` | `product_spec` | `public` | `active` | `[3]` | `SNK-WHT-40`, `SNK-WHT-41`, `SNK-WHT-42` | `products/prd_03_giay_sneaker_trang.md` |
-| `DOC-PRD-004` | `product_spec` | `public` | `active` | `[4]` | `SLD-BLK-40`, `SLD-BLK-42` | `products/prd_04_dep_quai_ngang.md` |
-| `DOC-PRD-005` | `product_spec` | `public` | `active` | `[5]` | `CAP-NVY-F`, `CAP-BLK-F` | `products/prd_05_non_luoi_trai.md` |
-| `DOC-PRD-006` | `product_spec` | `public` | `active` | `[6]` | `BAG-GRY-15`, `BAG-BLK-15` | `products/prd_06_balo_laptop.md` |
-| `DOC-PRD-007` | `product_spec` | `public` | `discontinued` | `[7]` | `JKT-NVY-L` | `products/prd_07_ao_khoac_du_ngung_ban.md` |
-| `DOC-POL-RETURN` | `policy` | `public` | `not_applicable` | `[]` *(v1.0)* / `[5]` *(v1.1)* | `[]` *(v1.0)* / `CAP-NVY-F`, `CAP-BLK-F` *(v1.1)* | `policies/pol_doi_tra_huy_don_v1.0.md` & `_v1.1.md` |
-| `DOC-POL-WARRANTY` | `policy` | `public` | `not_applicable` | `[3, 6]` | `SNK-WHT-40..42`, `BAG-GRY-15`, `BAG-BLK-15` | `policies/pol_bao_hanh.md` |
-| `DOC-POL-SHIPPING` | `policy` | `public` | `not_applicable` | `[]` | `[]` | `policies/pol_giao_nhan_thanh_toan.md` |
-| `DOC-GDE-SIZE` | `guide` | `public` | `not_applicable` | `[1,2,3,4,5,6]` | `[]` | `guides/gde_bang_size_tu_van.md` |
-| `DOC-FAQ-PUBLIC` | `faq` | `public` | `not_applicable` | `[]` | `[]` | `guides/faq_khach_hang.md` |
-| `DOC-INT-SOP-SUPPORT` | `sop_internal` | `staff` | `not_applicable` | `[]` | `[]` | `internal_staff/sop_xu_ly_khieu_nai_handoff.md` |
-| `DOC-INT-PROMO-RULES` | `sop_internal` | `staff` | `not_applicable` | `[]` | `[]` | `internal_staff/sop_ho_tro_phi_va_uu_dai_noi_bo.md` |
-| `DOC-INT-STOCK-OPS` | `sop_internal` | `staff` | `not_applicable` | `[7]` | `JKT-NVY-L` | `internal_staff/sop_van_hanh_ton_kho_gia.md` |
-| `DOC-ADM-RAG-OPS` | `admin_ops` | `admin` | `not_applicable` | `[]` | `[]` | `internal_admin/adm_quan_tri_corpus_release.md` |
-| `DOC-ADM-HR-POLICY` | `admin_ops` | `admin` | `not_applicable` | `[]` | `[]` | `internal_admin/adm_ca_truc_va_phu_cap.md` |
+| `DOC-PRD-001` | `product_spec` | `public` | `active` | `[1]` | `TSH-BLK-M`, `TSH-BLK-L`, `TSH-WHT-M`, `TSH-WHT-L` | `products/prd_01_ao_thun_basic_cotton.pdf` |
+| `DOC-PRD-002` | `product_spec` | `public` | `active` | `[2]` | `HOD-GRY-M`, `HOD-GRY-L`, `HOD-BLK-L` | `products/prd_02_ao_hoodie_ni.pdf` |
+| `DOC-PRD-003` | `product_spec` | `public` | `active` | `[3]` | `SNK-WHT-40`, `SNK-WHT-41`, `SNK-WHT-42` | `products/prd_03_giay_sneaker_trang.pdf` |
+| `DOC-PRD-004` | `product_spec` | `public` | `active` | `[4]` | `SLD-BLK-40`, `SLD-BLK-42` | `products/prd_04_dep_quai_ngang.pdf` |
+| `DOC-PRD-005` | `product_spec` | `public` | `active` | `[5]` | `CAP-NVY-F`, `CAP-BLK-F` | `products/prd_05_non_luoi_trai.pdf` |
+| `DOC-PRD-006` | `product_spec` | `public` | `active` | `[6]` | `BAG-GRY-15`, `BAG-BLK-15` | `products/prd_06_balo_laptop.pdf` |
+| `DOC-PRD-007` | `product_spec` | `public` | `discontinued` | `[7]` | `JKT-NVY-L` | `products/prd_07_ao_khoac_du_ngung_ban.pdf` |
+| `DOC-POL-RETURN` | `policy` | `public` | `not_applicable` | `[]` *(v1.0)* / `[5]` *(v1.1)* | `[]` *(v1.0)* / `CAP-NVY-F`, `CAP-BLK-F` *(v1.1)* | `policies/pol_doi_tra_huy_don_v1.0.pdf` & `_v1.1.pdf` |
+| `DOC-POL-WARRANTY` | `policy` | `public` | `not_applicable` | `[3, 6]` | `SNK-WHT-40..42`, `BAG-GRY-15`, `BAG-BLK-15` | `policies/pol_bao_hanh.pdf` |
+| `DOC-POL-SHIPPING` | `policy` | `public` | `not_applicable` | `[]` | `[]` | `policies/pol_giao_nhan_thanh_toan.pdf` |
+| `DOC-GDE-SIZE` | `guide` | `public` | `not_applicable` | `[1,2,3,4,5,6]` | `[]` | `guides/gde_bang_size_tu_van.pdf` |
+| `DOC-FAQ-PUBLIC` | `faq` | `public` | `not_applicable` | `[]` | `[]` | `guides/faq_khach_hang.pdf` |
+| `DOC-INT-SOP-SUPPORT` | `sop_internal` | `staff` | `not_applicable` | `[]` | `[]` | `internal_staff/sop_xu_ly_khieu_nai_handoff.pdf` |
+| `DOC-INT-PROMO-RULES` | `sop_internal` | `staff` | `not_applicable` | `[]` | `[]` | `internal_staff/sop_ho_tro_phi_va_uu_dai_noi_bo.pdf` |
+| `DOC-INT-STOCK-OPS` | `sop_internal` | `staff` | `not_applicable` | `[7]` | `JKT-NVY-L` | `internal_staff/sop_van_hanh_ton_kho_gia.pdf` |
+| `DOC-ADM-RAG-OPS` | `admin_ops` | `admin` | `not_applicable` | `[]` | `[]` | `internal_admin/adm_quan_tri_corpus_release.pdf` |
+| `DOC-ADM-HR-POLICY` | `admin_ops` | `admin` | `not_applicable` | `[]` | `[]` | `internal_admin/adm_ca_truc_va_phu_cap.pdf` |
 
 ### 4.2. Quy ước Front Matter & Bảng biến thể
 
@@ -177,11 +179,11 @@ data_notice: Dữ liệu mô phỏng cho mini-project, không phải dữ liệu
       "access_level": "public",
       "version": "1.0",
       "author": "TV1 - Database & Business Data",
-      "source_path": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.md",
+      "source_path": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.pdf",
       "effective_date": "2026-10-01",
-      "encoding": "utf-8",
-      "content_sha256": "<sha256 trên bytes LF>",
-      "file_size_bytes": 3180,
+      "encoding": "pdf",
+      "content_sha256": "<sha256 trên binary PDF>",
+      "file_size_bytes": 85266,
       "catalog_status": "active",
       "product_ids": [1],
       "skus": ["TSH-BLK-M", "TSH-BLK-L", "TSH-WHT-M", "TSH-WHT-L"],
@@ -231,11 +233,15 @@ Có thể import từ thư mục gốc dự án (`from database.shop_db import c
 }
 ```
 
-### 5.3. `corpus_files.py` & `corpus_seed.py`
+### 5.3. `corpus_files.py`, `corpus_pdf.py` & `corpus_seed.py`
 
-- `corpus_files.read_normalized(path) -> tuple[str, bytes]`: Đọc file UTF-8 không BOM, chuẩn hóa LF.
-- `corpus_files.fingerprint(path) -> dict`: Trả `{"content_sha256", "file_size_bytes"}`.
-- `corpus_files.parse_front_matter(text)`, `section_titles(text)`, `find_sku_tokens(text)`, `parse_variant_table(text, heading)`, `find_hardcoded_stock(text)`.
+- `corpus_files.read_normalized(path) -> tuple[str, bytes]`: Tự động nhận diện `.pdf` (kiểm tra cấu trúc PDF, trích xuất văn bản UTF-8 chuẩn hóa LF và trả binary gốc) hoặc `.md` (kiểm tra UTF-8 không BOM, chuẩn hóa LF).
+- `corpus_files.read_pdf_text(path) -> tuple[str, bytes]`: Đọc trực tiếp file `.pdf` và trả `(extracted_text, raw_pdf_bytes)`.
+- `corpus_files.fingerprint(path) -> dict`: Trả `{"content_sha256", "file_size_bytes"}` (tính trên binary gốc với `.pdf`, trên UTF-8 LF với `.md`).
+- `corpus_files.parse_front_matter(text)`, `section_titles(text)`, `find_sku_tokens(text)`, `parse_variant_table(text, heading)`, `find_hardcoded_stock(text)` (tương thích đồng thời với bảng Markdown và bảng trích xuất từ PDF).
+- `corpus_pdf.render_markdown_to_pdf_bytes(md_text) -> bytes`, `render_markdown_file_to_pdf(md_path, pdf_path=None) -> Path`: Biên dịch tất định (`invariant=1`) tài liệu Markdown sang PDF Unicode tiếng Việt.
+- `corpus_pdf.export_manifest_pdf(manifest_path, pdf_path=None) -> Path`: Xuất báo cáo tổng hợp bảng metadata của manifest ra PDF (`data_config/corpus_manifest_v1.0.pdf`, `v1.1.pdf`).
+- `corpus_pdf.build_corpus_pdfs(..., update_manifests=False, export_manifest_pdfs=True)` & `corpus_pdf.check_corpus_pdfs(...)`: Xuất hàng loạt 18 file corpus PDF, đồng bộ manifest và kiểm tra đối xứng 1-1 giữa `.md` và `.pdf`.
 - `corpus_seed.ensure_corpus_seeded(conn, manifest_path=None, repo_root=REPO_ROOT) -> dict`: Tự `migrate`, tự `seed_catalog` nếu bảng `products` trống, và `sync_from_manifest` nếu chưa có release active (gọi lặp lại an toàn).
 - `corpus_seed.reset_and_seed_all(conn, manifest_path=None, repo_root=REPO_ROOT) -> dict`: Reset toàn bộ catalog + corpus và nạp sạch lại từ đầu.
 
@@ -249,14 +255,14 @@ Có thể import từ thư mục gốc dự án (`from database.shop_db import c
 |---|---|---|
 | `CorpusValidationError` | `corpus_validation_error` | Sai tham số đầu vào (`role`, `doc_id`, `actor_type`) hoặc JSON manifest hỏng cấu trúc |
 | `CorpusNotFound` | `corpus_doc_not_found` | Không tìm thấy `doc_id`, tài liệu đang inactive, hoặc không tìm thấy `version` |
-| `CorpusFileIntegrityError` | `corpus_file_integrity_error` | File thiếu (`file_missing`), rỗng (`file_empty`), có BOM (`file_has_bom`), lỗi UTF-8 (`file_not_utf8`) |
+| `CorpusFileIntegrityError` | `corpus_file_integrity_error` | File thiếu (`file_missing`), rỗng (`file_empty`), hỏng cấu trúc PDF (`file_invalid_pdf`), có BOM (`file_has_bom`), lỗi UTF-8 (`file_not_utf8`) |
 | `SkuSyncMismatch` | `sku_sync_mismatch` | `sync_from_manifest` bị chặn do `verify_catalog_sync` có lỗi (`err.details["report"]` chứa chi tiết) |
 | `CorpusAccessDenied` | `access_denied` | Role hiện tại không đủ quyền đọc tài liệu/citation/lịch sử version |
 | `CorpusVersionConflict` | `corpus_version_conflict` | Cặp `(doc_id, version)` đã tồn tại trong DB với `content_sha256` khác |
 
 ### 6.2. Mã lỗi trong `report["errors"]`
 
-- **Lớp tệp & cấu trúc manifest (`validate_manifest`)**: `missing_field`, `invalid_doc_id`, `duplicate_doc_id`, `invalid_enum`, `catalog_status_not_applicable`, `invalid_source_path`, `file_missing`, `file_empty`, `file_has_bom`, `file_not_utf8`, `hash_mismatch`, `size_mismatch`, `front_matter_mismatch`, `undeclared_sku_in_text`, `hardcoded_stock` (cảnh báo: `few_sections`, `low_public_sections`).
+- **Lớp tệp & cấu trúc manifest (`validate_manifest`)**: `missing_field`, `invalid_doc_id`, `duplicate_doc_id`, `invalid_enum`, `catalog_status_not_applicable`, `invalid_source_path`, `file_missing`, `file_empty`, `file_invalid_pdf`, `file_has_bom`, `file_not_utf8`, `hash_mismatch`, `size_mismatch`, `front_matter_mismatch`, `undeclared_sku_in_text`, `hardcoded_stock` (cảnh báo: `few_sections`, `low_public_sections`).
 - **Lớp đối soát SQLite Catalog (`verify_catalog_sync`)**: `unknown_product_id`, `unknown_sku`, `sku_product_mismatch`, `product_spec_sku_set_mismatch`, `catalog_status_mismatch`, `product_name_missing`, `variant_table_missing`, `variant_table_mismatch`, `price_mismatch`, `missing_catalog_coverage`.
 
 ---
@@ -266,7 +272,11 @@ Có thể import từ thư mục gốc dự án (`from database.shop_db import c
 Chạy từ thư mục gốc dự án:
 
 ```bash
-# 1. Kiểm tra toàn vẹn manifest + đối soát SKU (exit 0 nếu PASS, exit 1 nếu FAIL)
+# 0. Chuyển đổi toàn bộ tài liệu corpus .md sang .pdf, xuất báo cáo manifest PDF và đồng bộ SHA-256 vào manifest
+python -m database.shop_db.corpus_pdf --build --update-manifests
+python -m database.shop_db.corpus_pdf --check
+
+# 1. Kiểm tra toàn vẹn manifest + đối soát SKU trực tiếp trên các file .pdf (exit 0 nếu PASS, exit 1 nếu FAIL)
 python -m database.shop_db.sku_sync_service --check --manifest data_config/corpus_manifest_v1.0.json
 python -m database.shop_db.sku_sync_service --check --manifest data_config/corpus_manifest_v1.1.json
 

@@ -132,7 +132,7 @@ def _is_valid_source_path(source_path, repo_root: Path) -> bool:
     parts = source_path.split("/")
     if any(part in ("", ".", "..") for part in parts):
         return False
-    if not source_path.startswith("data_config/corpus/") or not source_path.endswith(".md"):
+    if not source_path.startswith("data_config/corpus/") or not source_path.endswith((".pdf", ".md")):
         return False
     corpus_root = (Path(repo_root) / "data_config" / "corpus").resolve()
     resolved = (Path(repo_root) / source_path).resolve()
@@ -190,11 +190,13 @@ def _validate_manifest_internal(manifest: dict, repo_root: Path) -> tuple[dict, 
             _err(errors, "duplicate_doc_id", doc_id, f"Trùng lặp doc_id trong manifest: {doc_id}")
         seen_doc_ids.add(doc_id)
 
+        is_pdf_src = str(doc.get("source_path", "")).endswith(".pdf")
+        allowed_encodings = ("pdf", "utf-8") if is_pdf_src else ("utf-8",)
         if (doc["doc_type"] not in DOC_TYPES
                 or doc["access_level"] not in ACCESS_LEVELS
                 or doc["catalog_status"] not in CATALOG_STATUSES
                 or doc["category"] not in CATEGORIES
-                or doc["encoding"] != "utf-8"
+                or doc["encoding"] not in allowed_encodings
                 or not _DATE_RE.match(doc["effective_date"])):
             _err(errors, "invalid_enum", doc_id, "Giá trị enum/encoding/effective_date không hợp lệ")
 
@@ -369,7 +371,8 @@ def verify_catalog_sync(conn, manifest: dict, repo_root: Path = REPO_ROOT) -> di
             if text is None:
                 continue
 
-            if prod["name"] not in text:
+            norm_text = " ".join(text.split())
+            if prod["name"] not in norm_text:
                 _err(errors, "product_name_missing", doc_id,
                      f"Văn bản thiếu tên chuẩn của sản phẩm từ DB: {prod['name']!r}")
 
@@ -660,7 +663,8 @@ def _print_fingerprints(manifest_arg, repo_root: Path) -> int:
             })
     else:
         corpus_dir = repo_root / "data_config" / "corpus"
-        for p in sorted(corpus_dir.rglob("*.md")):
+        candidates = sorted(corpus_dir.rglob("*.pdf")) or sorted(corpus_dir.rglob("*.md"))
+        for p in candidates:
             text, _ = read_normalized(p)
             fm = parse_front_matter(text)
             fp = fingerprint(p)
