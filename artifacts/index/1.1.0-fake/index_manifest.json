@@ -1,0 +1,156 @@
+{
+  "index_id": "1.1.0-fake-2cc2a6d0",
+  "corpus_release": "1.1.0",
+  "manifest_path": "data_config/corpus_manifest_v1.1.json",
+  "manifest_sha256": "8613bc172d7d849725c36bfc642431318c68a8bf781a881ec284331728e9ee54",
+  "embedding": {
+    "provider": "fake",
+    "model": "hashed-ngram-v1",
+    "revision": "1",
+    "dimension": 512,
+    "query_encoding": "normalize(lower, no accents) -> unigram + bigram + char-trigram, signed hashing",
+    "document_encoding": "normalize(lower, no accents) -> unigram + bigram + char-trigram, signed hashing",
+    "normalization": "l2",
+    "metric": "cosine (dot product of L2-normalised vectors)"
+  },
+  "chunk_config": {
+    "strategy": "db_section",
+    "max_chars": 1200,
+    "overlap_sentences": 1,
+    "prefix": "doc_title + section_title"
+  },
+  "chunk_count": 86,
+  "chunks_by_access": {
+    "public": 64,
+    "staff": 13,
+    "admin": 9
+  },
+  "documents": [
+    {
+      "doc_id": "DOC-PRD-001",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_01_ao_thun_basic_cotton.pdf",
+      "access_level": "public",
+      "content_sha256": "823bdec2f9440eab6e6a4b0c05b523736f07a883aae2fe8bcfa19bdec5e4397f"
+    },
+    {
+      "doc_id": "DOC-PRD-002",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_02_ao_hoodie_ni.pdf",
+      "access_level": "public",
+      "content_sha256": "5476c00fba3cfa9ecf8ed2e0995930dd14a29d77a343324417b33f13d11302d5"
+    },
+    {
+      "doc_id": "DOC-PRD-003",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_03_giay_sneaker_trang.pdf",
+      "access_level": "public",
+      "content_sha256": "0a3f6b6afd43bc0a36d1a1be61d10b8d16c866b433e983de94afbdc40adf9c01"
+    },
+    {
+      "doc_id": "DOC-PRD-004",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_04_dep_quai_ngang.pdf",
+      "access_level": "public",
+      "content_sha256": "4561ecd728efd0c82118d313c2c0764f4e388292282b4317db5bba420431d526"
+    },
+    {
+      "doc_id": "DOC-PRD-005",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_05_non_luoi_trai.pdf",
+      "access_level": "public",
+      "content_sha256": "76b7c42cba6023d789b20602b8d41007769685129b7397dd0f7d99f52e756c7b"
+    },
+    {
+      "doc_id": "DOC-PRD-006",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_06_balo_laptop.pdf",
+      "access_level": "public",
+      "content_sha256": "ed8083dcf0b6d03681012337711a9a58ccd6307310e26a40239899889d69d90a"
+    },
+    {
+      "doc_id": "DOC-PRD-007",
+      "version": "1.0",
+      "source": "data_config/corpus/products/prd_07_ao_khoac_du_ngung_ban.pdf",
+      "access_level": "public",
+      "content_sha256": "1575bd4e76b05dbdde41d7840d170d1e7e3239f08d4be1c7f26bdcb490b42f4e"
+    },
+    {
+      "doc_id": "DOC-POL-RETURN",
+      "version": "1.1",
+      "source": "data_config/corpus/policies/pol_doi_tra_huy_don_v1.1.pdf",
+      "access_level": "public",
+      "content_sha256": "a9cbc7980381b3d34508cc932208e4d92659b2d76e71a688b91d0f38aa34e95b"
+    },
+    {
+      "doc_id": "DOC-POL-WARRANTY",
+      "version": "1.0",
+      "source": "data_config/corpus/policies/pol_bao_hanh.pdf",
+      "access_level": "public",
+      "content_sha256": "aff93e8fa403373a402e4fe46ec4383aefb83cab41b6df1bd2647b86478eb377"
+    },
+    {
+      "doc_id": "DOC-POL-SHIPPING",
+      "version": "1.0",
+      "source": "data_config/corpus/policies/pol_giao_nhan_thanh_toan.pdf",
+      "access_level": "public",
+      "content_sha256": "17b12eea3761e78fc16dd75c06642d85a9996a72fa4cf33675ee8f561ac9dcf9"
+    },
+    {
+      "doc_id": "DOC-GDE-SIZE",
+      "version": "1.0",
+      "source": "data_config/corpus/guides/gde_bang_size_tu_van.pdf",
+      "access_level": "public",
+      "content_sha256": "75d30f1097d49725606438a06060b36e09eae28aa9ec9b1b3ce2aadaa0ca542b"
+    },
+    {
+      "doc_id": "DOC-FAQ-PUBLIC",
+      "version": "1.0",
+      "source": "data_config/corpus/guides/faq_khach_hang.pdf",
+      "access_level": "public",
+      "content_sha256": "60caed6129c6f43e4d1b037b99aed6b3cff6105c8a6774b7b3b3b5cc2bef3c5f"
+    },
+    {
+      "doc_id": "DOC-INT-SOP-SUPPORT",
+      "version": "1.0",
+      "source": "data_config/corpus/internal_staff/sop_xu_ly_khieu_nai_handoff.pdf",
+      "access_level": "staff",
+      "content_sha256": "dc3a92455fca66af16874727aa36d0db9f5c3cbfb78e59b524bb0730db0be105"
+    },
+    {
+      "doc_id": "DOC-INT-PROMO-RULES",
+      "version": "1.0",
+      "source": "data_config/corpus/internal_staff/sop_ho_tro_phi_va_uu_dai_noi_bo.pdf",
+      "access_level": "staff",
+      "content_sha256": "8a5d80e09db555385247133c793c8ceac4446e3d6252a6363d7751987a73c46b"
+    },
+    {
+      "doc_id": "DOC-INT-STOCK-OPS",
+      "version": "1.0",
+      "source": "data_config/corpus/internal_staff/sop_van_hanh_ton_kho_gia.pdf",
+      "access_level": "staff",
+      "content_sha256": "25f9f82c9b57f20a5c5b676a933e19f25c9cbe8023704f8a68cc1848137074cb"
+    },
+    {
+      "doc_id": "DOC-ADM-RAG-OPS",
+      "version": "1.0",
+      "source": "data_config/corpus/internal_admin/adm_quan_tri_corpus_release.pdf",
+      "access_level": "admin",
+      "content_sha256": "a25baffa4e07d83e459e342aaa06c4a7568d6befac33b0ac7d1260e458d4dde9"
+    },
+    {
+      "doc_id": "DOC-ADM-HR-POLICY",
+      "version": "1.0",
+      "source": "data_config/corpus/internal_admin/adm_ca_truc_va_phu_cap.pdf",
+      "access_level": "admin",
+      "content_sha256": "9a26f62c9e674166a251c48535b89091218ab1e0a9fce66dfe67a9cefc1d7af0"
+    }
+  ],
+  "files": {
+    "vectors_public.npy": "7b2d1887dfe0234e65707b19dc299a7fad4a80707e06e339e1eb477fa4b284ab",
+    "vectors_staff.npy": "0b26e27250204324c49a2bce8d5b3b89df86b1706d15658bde0b76b3fb1c9478",
+    "vectors_admin.npy": "3753564ef8d02c42a8ab8d322e752fd093c499450c770f3e854b3a68f67423e0",
+    "chunks.jsonl": "2cc2a6d0c8eb7463e81fdb83db8ff0f58524aa2d833c0a9fce2a5484725d6621"
+  },
+  "built_at": "2026-11-02T09:27:26+00:00"
+}

@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -35,6 +35,7 @@ class ItemChange(StrictModel):
     quantity: Quantity | None = None
 
     @model_validator(mode="after")
+    # Bắt buộc yêu cầu sửa dòng hàng có ít nhất một trường sku hoặc quantity khác null.
     def require_change(self):
         if not self.model_fields_set or any(getattr(self, f) is None for f in self.model_fields_set):
             raise ValueError("Cần sku hoặc quantity có giá trị hợp lệ")
@@ -43,3 +44,12 @@ class ItemChange(StrictModel):
 
 class ChatRequest(StrictModel):
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+
+
+class KnowledgeRequest(StrictModel):
+    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+
+
+class ReindexRequest(StrictModel):
+    action: Literal["build", "activate"]
+    release: Annotated[str, StringConstraints(pattern=r"^\d+\.\d+\.\d+$")]

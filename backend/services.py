@@ -8,6 +8,7 @@ from .errors import ApiProblem
 from .storage import replay, save_receipt
 
 
+# Đổi dữ liệu catalog nội bộ thành cấu trúc sản phẩm/biến thể cho frontend.
 def product_view(product):
     return {
         **{k: product[k] for k in ("product_id", "name", "category", "description", "in_stock")},
@@ -18,12 +19,14 @@ def product_view(product):
     }
 
 
+# Kiểm tra mã đơn dạng DH000001 rồi lấy phần ID số để truy vấn database.
 def order_number(value):
     if not isinstance(value, str) or not re.fullmatch(r"DH\d{6,10}", value):
         raise ApiProblem(404, "not_found", "Không tìm thấy đơn hàng trong phiên của bạn.")
     return int(value[2:])
 
 
+# Lấy đơn và từ chối truy cập nếu đơn không thuộc chủ phiên đang yêu cầu.
 def owned_order(conn, owner, order_id):
     order = orders.get_order(conn, order_id)
     if order["owner_id"] != owner:
@@ -31,6 +34,7 @@ def owned_order(conn, owner, order_id):
     return order
 
 
+# Ghép dòng hàng, biến thể có thể đổi và giao nhận thành dữ liệu đơn cho frontend.
 def order_view(conn, order):
     rows = conn.execute("SELECT * FROM order_items WHERE order_id=? ORDER BY id", (order["id"],)).fetchall()
     items = []
@@ -49,6 +53,7 @@ def order_view(conn, order):
             "items": items, "total": order["total_amount"], "source": order["source"]}
 
 
+# Tìm giỏ gắn với phiên; chỉ tạo giỏ mới khi tham số create được bật.
 def cart_order(conn, session, ctx, create=False):
     row = conn.execute("SELECT cart_id FROM api_sessions WHERE owner_id=?", (session["owner_id"],)).fetchone()
     if row and row["cart_id"]:
@@ -60,6 +65,7 @@ def cart_order(conn, session, ctx, create=False):
     return None
 
 
+# Trả giỏ theo định dạng frontend hoặc cấu trúc giỏ trống nếu chưa có giỏ.
 def cart_view(conn, session, ctx):
     order = cart_order(conn, session, ctx)
     if order is None:
@@ -67,6 +73,7 @@ def cart_view(conn, session, ctx):
     return order_view(conn, order)
 
 
+# Lấy dòng hàng theo cả mã đơn và item ID để tránh thao tác nhầm đơn.
 def item_row(conn, order_id, item_id):
     row = conn.execute("SELECT * FROM order_items WHERE order_id=? AND CAST(id AS TEXT)=?",
                        (order_id, item_id)).fetchone()
@@ -75,6 +82,7 @@ def item_row(conn, order_id, item_id):
     return row
 
 
+# Sửa số lượng/biến thể trong transaction, kiểm tra quyền và trạng thái cho phép sửa.
 def update_item(conn, ctx, owner, order_id, item_id, changes):
     with transaction(conn):
         order = owned_order(conn, owner, order_id)
@@ -91,6 +99,7 @@ def update_item(conn, ctx, owner, order_id, item_id, changes):
         return orders.add_item(conn, ctx, order_id, sku, qty)
 
 
+# Chuyển giỏ thành đơn chờ xác nhận, tách giỏ khỏi phiên và lưu kết quả chống gửi trùng.
 def checkout(conn, ctx, session, shipping, key):
     owner = session["owner_id"]
     with transaction(conn):

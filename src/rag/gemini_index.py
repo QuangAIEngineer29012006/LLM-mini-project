@@ -14,6 +14,9 @@ import time
 import requests
 from dotenv import load_dotenv
 
+from . import corpus_source
+from .corpus_source import CorpusTextError
+
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
@@ -31,6 +34,7 @@ EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "gemini-embedding-001")
 INDEX_FORMAT_VERSION = "2.0"
 MAX_CHUNK_CHARS = 900
 CHUNK_OVERLAP_CHARS = 120
+CHUNK_STRATEGY = "db_section_word_split"
 ROLE_ACCESS = {
     "customer": {"public"},
     "public": {"public"},
@@ -71,85 +75,32 @@ def _read_manifest(manifest_path=None):
     return manifest, hashlib.sha256(normalized).hexdigest()
 
 
-def _safe_document_path(source_path):
-    if not isinstance(source_path, str) or not source_path.startswith("data_config/corpus/"):
-        raise RAGError("Corpus source_path must point inside data_config/corpus")
-    if "\\" in source_path or any(part in {"", ".", ".."} for part in source_path.split("/")):
-        raise RAGError("Corpus source_path is not a safe relative path")
-    corpus_root = (ROOT / "data_config" / "corpus").resolve()
-    resolved = (ROOT / source_path).resolve()
-    try:
-        resolved.relative_to(corpus_root)
-    except ValueError as error:
-        raise RAGError("Corpus source_path escapes the corpus folder") from error
-    return resolved
-
-
-def _load_documents(manifest):
-    documents = []
+def _load_documents(manifest, db_path=None):
     seen_ids = set()
-    required = ("doc_id", "title", "source_path", "version", "access_level", "content_sha256", "file_size_bytes")
-
+    required = ("doc_id", "title", "source_path", "version", "access_level", "content_sha256")
     for position, item in enumerate(manifest["documents"], start=1):
         if not isinstance(item, dict) or any(not item.get(key) for key in required):
             raise RAGError(f"Corpus document {position} is missing required metadata")
-        doc_id = item["doc_id"]
-        if doc_id in seen_ids:
-            raise RAGError(f"Duplicate corpus doc_id: {doc_id}")
-        seen_ids.add(doc_id)
+        if item["doc_id"] in seen_ids:
+            raise RAGError(f"Duplicate corpus doc_id: {item['doc_id']}")
+        seen_ids.add(item["doc_id"])
         if item["access_level"] not in {"public", "staff", "admin"}:
-            raise RAGError(f"Invalid access level for {doc_id}")
-
-        path = _safe_document_path(item["source_path"])
-        try:
-            raw = path.read_bytes()
-        except OSError as error:
-            raise RAGError(f"Corpus source file is missing: {item['source_path']}") from error
-        if raw.startswith(b"\xef\xbb\xbf"):
-            raise RAGError(f"Corpus source has a UTF-8 BOM: {item['source_path']}")
-        normalized = raw.replace(b"\r\n", b"\n")
-        try:
-            text = normalized.decode("utf-8", errors="strict")
-        except UnicodeDecodeError as error:
-            raise RAGError(f"Corpus source is not valid UTF-8: {item['source_path']}") from error
-        if not text.strip():
-            raise RAGError(f"Corpus source is empty: {item['source_path']}")
-        if hashlib.sha256(normalized).hexdigest() != item["content_sha256"]:
-            raise RAGError(f"Corpus source hash differs from manifest: {item['source_path']}")
-        if len(normalized) != item["file_size_bytes"]:
-            raise RAGError(f"Corpus source size differs from manifest: {item['source_path']}")
-
-        front_matter = re.match(r"\A---\s*\n(.*?)\n---\s*\n", text, flags=re.S)
-        if not front_matter:
-            raise RAGError(f"Corpus file is missing Markdown front matter: {item['source_path']}")
-        fm = {}
-        for line in front_matter.group(1).splitlines():
-            key, sep, value = line.partition(":")
-            if sep:
-                fm[key.strip()] = value.strip()
-        for key in ("doc_id", "title", "version", "access_level"):
-            if fm.get(key) != str(item[key]):
-                raise RAGError(f"Manifest/front-matter {key} mismatch for {doc_id}")
-
-        documents.append({
-            "doc_id": doc_id,
-            "title": item["title"],
-            "source": item["source_path"],
-            "version": item["version"],
-            "access_level": item["access_level"],
-            "content_sha256": item["content_sha256"],
-            "text": text,
-        })
-
+            raise RAGError(f"Invalid access level for {item['doc_id']}")
+    try:
+        documents = corpus_source.load_documents(manifest, db_path)
+    except CorpusTextError as error:
+        raise RAGError(str(error)) from None
     if not documents:
         raise RAGError("Corpus contains no documents")
-    return documents
+    return [{"doc_id": d["doc_id"], "title": d["title"], "source": d["source_path"], "version": d["version"],
+             "access_level": d["access_level"], "content_sha256": d["content_sha256"], "sections": d["sections"]}
+            for d in documents]
 
 
-def load_documents(manifest_path=None):
-    """Load active manifest documents after validating source paths and hashes."""
+def load_documents(manifest_path=None, db_path=None):
+    """Load manifest documents with the section text the database extracted from their PDFs."""
     manifest, _ = _read_manifest(manifest_path)
-    return _load_documents(manifest)
+    return _load_documents(manifest, db_path)
 
 
 def _terms(text):
@@ -179,42 +130,32 @@ def is_restricted_topic(question, role="customer", manifest_path=None):
     return False
 
 
-def split_into_chunks(text):
-    """Keep Markdown sections intact; split oversized sections at word boundaries."""
-    text = re.sub(r"\A---\s*\n.*?\n---\s*\n", "", text, count=1, flags=re.S)
-    sections = re.split(r"(?m)(?=^#{1,6}\s+)", text)
+def split_into_chunks(title, body):
+    """Keep a DB section intact; split an oversized one at word boundaries, repeating its heading."""
+    heading = f"## {title}"
+    if len(heading) + 1 + len(body) <= MAX_CHUNK_CHARS:
+        return [f"{heading}\n{body}"]
     chunks = []
-    for section in sections:
-        section = section.strip()
-        if not section:
-            continue
-        if len(section) <= MAX_CHUNK_CHARS:
-            chunks.append(section)
-            continue
-
-        lines = section.splitlines()
-        heading = lines[0].strip() if lines[0].lstrip().startswith("#") else ""
-        body = "\n".join(lines[1:]).strip() if heading else section
-        body_limit = max(200, MAX_CHUNK_CHARS - len(heading) - 1)
-        current = ""
-        for word in body.split():
-            proposed = f"{current} {word}".strip()
-            if len(proposed) > body_limit and current:
-                chunks.append(f"{heading}\n{current}".strip())
-                current = f"{current[-CHUNK_OVERLAP_CHARS:]} {word}".strip()
-            else:
-                current = proposed
-        if current:
-            chunks.append(f"{heading}\n{current}".strip())
+    body_limit = max(200, MAX_CHUNK_CHARS - len(heading) - 1)
+    current = ""
+    for word in body.split():
+        proposed = f"{current} {word}".strip()
+        if len(proposed) > body_limit and current:
+            chunks.append(f"{heading}\n{current}")
+            current = f"{current[-CHUNK_OVERLAP_CHARS:]} {word}".strip()
+        else:
+            current = proposed
+    if current:
+        chunks.append(f"{heading}\n{current}")
     return chunks
 
 
 def _expected_chunks(documents):
     expected = []
     for document in documents:
-        for number, text in enumerate(split_into_chunks(document["text"]), start=1):
-            first_line = text.splitlines()[0].strip() if text else ""
-            match = re.match(r"^#{1,6}\s+(.+)$", first_line)
+        texts = [(section["title"], text) for section in document["sections"]
+                 for text in split_into_chunks(section["title"], section["text"])]
+        for number, (section, text) in enumerate(texts, start=1):
             expected.append({
                 "chunk_id": f"{document['doc_id']}:{number}",
                 "doc_id": document["doc_id"],
@@ -222,7 +163,7 @@ def _expected_chunks(documents):
                 "source": document["source"],
                 "version": document["version"],
                 "access_level": document["access_level"],
-                "section": match.group(1) if match else "Introduction",
+                "section": section,
                 "text": text,
             })
     return expected
@@ -294,7 +235,7 @@ def _make_index_manifest(corpus_manifest, corpus_hash, manifest_file, chunks, in
         "query_encoding": "RETRIEVAL_QUERY",
         "normalization": "Gemini embedding values; cosine similarity computed at retrieval",
         "metric": "cosine_similarity",
-        "chunk_strategy": "markdown_section_aware_word_split",
+        "chunk_strategy": CHUNK_STRATEGY,
         "chunk_max_chars": MAX_CHUNK_CHARS,
         "chunk_overlap_chars": CHUNK_OVERLAP_CHARS,
         "document_count": len(corpus_manifest["documents"]),
@@ -310,11 +251,11 @@ def _paths(manifest_path, index_dir, corpus_manifest):
     return manifest_file, folder / INDEX_FILE_NAME, folder / INDEX_MANIFEST_NAME
 
 
-def build_index(manifest_path=None, index_dir=None):
+def build_index(manifest_path=None, index_dir=None, db_path=None):
     """Build new vectors and atomically publish the index and its manifest."""
     corpus_manifest, corpus_hash = _read_manifest(manifest_path)
     manifest_file, index_file, index_manifest_file = _paths(manifest_path, index_dir, corpus_manifest)
-    documents = _load_documents(corpus_manifest)
+    documents = _load_documents(corpus_manifest, db_path)
     expected = _expected_chunks(documents)
     chunks = []
     dimensions = None
@@ -337,14 +278,14 @@ def build_index(manifest_path=None, index_dir=None):
     return index_manifest
 
 
-def refresh_index_manifest(manifest_path=None, index_dir=None):
+def refresh_index_manifest(manifest_path=None, index_dir=None, db_path=None):
     """Adopt a previously built index only if its chunks match today's corpus exactly.
 
     This updates metadata only and makes no embedding API calls.
     """
     corpus_manifest, corpus_hash = _read_manifest(manifest_path)
     manifest_file, index_file, index_manifest_file = _paths(manifest_path, index_dir, corpus_manifest)
-    documents = _load_documents(corpus_manifest)
+    documents = _load_documents(corpus_manifest, db_path)
     expected = _expected_chunks(documents)
     try:
         old_manifest = json.loads(index_manifest_file.read_text(encoding="utf-8"))
@@ -400,11 +341,11 @@ def refresh_index_manifest(manifest_path=None, index_dir=None):
     return manifest
 
 
-def validate_index(manifest_path=None, index_dir=None):
-    """Verify corpus, source files, vectors and mappings before retrieval."""
+def validate_index(manifest_path=None, index_dir=None, db_path=None):
+    """Verify the index against the corpus text in the DB, its vectors and mappings before retrieval."""
     corpus_manifest, corpus_hash = _read_manifest(manifest_path)
     _, index_file, index_manifest_file = _paths(manifest_path, index_dir, corpus_manifest)
-    documents = _load_documents(corpus_manifest)
+    documents = _load_documents(corpus_manifest, db_path)
     expected = _expected_chunks(documents)
     try:
         index_manifest = json.loads(index_manifest_file.read_text(encoding="utf-8"))
@@ -421,7 +362,7 @@ def validate_index(manifest_path=None, index_dir=None):
         "document_encoding": "RETRIEVAL_DOCUMENT",
         "query_encoding": "RETRIEVAL_QUERY",
         "metric": "cosine_similarity",
-        "chunk_strategy": "markdown_section_aware_word_split",
+        "chunk_strategy": CHUNK_STRATEGY,
         "chunk_max_chars": MAX_CHUNK_CHARS,
         "chunk_overlap_chars": CHUNK_OVERLAP_CHARS,
         "document_count": len(documents),

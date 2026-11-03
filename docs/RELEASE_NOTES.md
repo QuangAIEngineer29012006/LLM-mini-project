@@ -7,6 +7,6 @@
 - Chỉ giữ báo cáo có vai trò rõ: kết quả hiện tại, input/output Gemini trước/sau và form rubric. Log probe/debug rời vẫn còn trong hai thư mục nguồn.
 - Không đóng gói `.git`, `.venv`, `node_modules`, Node/npm binaries, `.env`, cache hoặc database phiên làm việc. Máy nhận cài dependency từ manifest và khởi tạo DB bằng seed.
 
-Các module Streamlit vẫn giữ ở đường dẫn cũ để tương thích các test; React là giao diện chính. `sample_results/STATUS.md` là điểm vào duy nhất để đọc số liệu.
+Giao diện Streamlit cũ đã bị xóa ngày 22/10/2026; React là giao diện duy nhất. `sample_results/STATUS.md` là điểm vào duy nhất để đọc số liệu.
 
 Sửa ánh xạ ảnh nón/balo trên UI để tên sản phẩm khớp ảnh minh họa.

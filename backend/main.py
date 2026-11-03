@@ -12,26 +12,30 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
-from database.shop_db import catalog_service as catalog, order_service as orders
-from database.shop_db.audit_service import Ctx
+from database.shop_db import catalog_service as catalog, corpus_service, order_service as orders
+from database.shop_db.audit_service import Ctx, log_event
 from database.shop_db.db import connect, transaction
 from database.shop_db.errors import DataServiceError
 from src.llm_client import make_client
+from src.rag.index import IndexIntegrityError
+from src.rag.service import KnowledgeService
 
-from .chat_service import chat
+from .chat_service import chat, knowledge_view
 from .config import Settings
 from .errors import ApiProblem, database_problem
-from .models import CartItem, ChatRequest, Checkout, ItemChange, QuantityChange
+from .models import CartItem, ChatRequest, Checkout, ItemChange, KnowledgeRequest, QuantityChange, ReindexRequest
 from .services import (cart_order, cart_view, checkout, item_row, order_number,
                        order_view, owned_order, product_view, update_item)
-from .storage import authenticate, initialize, new_session, request_key
+from .storage import authenticate, demo_role, initialize, new_session, request_key
 
 
 class RateLimiter:
+    # Khởi tạo bộ đếm request và khóa để nhiều luồng cập nhật an toàn.
     def __init__(self):
         self.entries = {}
         self.lock = threading.Lock()
 
+    # Chặn khi số request của một IP hoặc phiên vượt giới hạn trong 60 giây.
     def check(self, bucket, identity, limit):
         now = time.monotonic()
         with self.lock:
@@ -44,6 +48,11 @@ class RateLimiter:
             queue.append(now)
 
 
+def _client_ip(request):
+    return request.client.host if request.client else "local"
+
+
+# Đóng gói lỗi thành JSON thống nhất, kèm request ID và thời gian chờ nếu bị giới hạn.
 def _error(problem, request_id=None):
     headers = {"Retry-After": "60"} if problem.status == 429 else {}
     return JSONResponse(status_code=problem.status, headers=headers,
@@ -51,24 +60,33 @@ def _error(problem, request_id=None):
                                            "fields": problem.fields}, "request_id": request_id})
 
 
+# Tạo ứng dụng FastAPI, gắn cấu hình, LLM, middleware và các endpoint.
 def create_app(settings=None, llm_client=None):
     settings = settings or Settings.from_env()
 
     @asynccontextmanager
+    # Chuẩn bị database, catalog và metadata corpus khớp với index RAG đang active.
     async def lifespan(app):
-        initialize(settings.db_path)
+        knowledge = app.state.knowledge
+        initialize(settings.db_path, knowledge.manifest_path)
+        # The index is checked against corpus text stored by the sync above, so load it again now.
+        knowledge.reload()
+        with db() as conn:
+            knowledge.check_release(conn)
         yield
 
     app = FastAPI(title="Live Commerce Order Assistant", version="1.0.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.llm_client = llm_client or make_client(settings)
+    app.state.knowledge = KnowledgeService(settings, app.state.llm_client)
     limiter = RateLimiter()
 
     @app.middleware("http")
+    # Gắn mã theo dõi, giới hạn request/kích thước body và xử lý lỗi chung cho mỗi lượt gọi.
     async def request_context(request, call_next):
         request.state.request_id = uuid.uuid4().hex
         try:
-            limiter.check("http", request.client.host if request.client else "local", settings.request_limit)
+            limiter.check("http", _client_ip(request), settings.request_limit)
             body = bytearray()
             async for chunk in request.stream():
                 body.extend(chunk)
@@ -88,14 +106,17 @@ def create_app(settings=None, llm_client=None):
         return response
 
     @app.exception_handler(ApiProblem)
+    # Chuyển lỗi nghiệp vụ API thành phản hồi JSON có mã HTTP tương ứng.
     async def api_error(request, err):
         return _error(err, request.state.request_id)
 
     @app.exception_handler(DataServiceError)
+    # Chuyển lỗi từ lớp database thành lỗi API dễ hiểu cho frontend.
     async def db_error(request, err):
         return _error(database_problem(err), request.state.request_id)
 
     @app.exception_handler(RequestValidationError)
+    # Báo các trường đầu vào thiếu, sai kiểu hoặc không được phép gửi.
     async def validation_error(request, err):
         fields = {}
         for error in err.errors():
@@ -104,15 +125,18 @@ def create_app(settings=None, llm_client=None):
         return _error(ApiProblem(422, "validation", "Dữ liệu gửi lên chưa hợp lệ.", fields), request.state.request_id)
 
     @app.exception_handler(HTTPException)
+    # Trả thông báo thống nhất khi endpoint không tồn tại hoặc request không được hỗ trợ.
     async def http_error(request, err):
         return _error(ApiProblem(err.status_code, "not_found" if err.status_code == 404 else "request_error",
                                  "Không tìm thấy endpoint." if err.status_code == 404 else "Yêu cầu không được hỗ trợ."), request.state.request_id)
 
     @app.exception_handler(sqlite3.OperationalError)
+    # Trả lỗi 503 khi SQLite tạm thời không truy cập được để khách có thể thử lại.
     async def busy_error(request, err):
         return _error(ApiProblem(503, "database_unavailable", "Dữ liệu tạm thời chưa truy cập được. Vui lòng thử lại."), request.state.request_id)
 
     @contextmanager
+    # Mở kết nối database cho một khối xử lý và luôn đóng kết nối khi khối kết thúc.
     def db():
         conn = connect(settings.db_path)
         try:
@@ -121,52 +145,69 @@ def create_app(settings=None, llm_client=None):
             conn.close()
 
     @contextmanager
+    # Xác thực Bearer token và cung cấp database, phiên cùng thông tin ghi audit.
     def session_db(request):
         with db() as conn:
             session = authenticate(conn, request.headers.get("Authorization"))
-            ctx = Ctx("customer", session["owner_id"], request.state.request_id)
+            actor = "customer" if session["role"] == "customer" else "staff"
+            ctx = Ctx(actor, session["owner_id"], request.state.request_id)
             yield conn, session, ctx
 
+    # Chặn endpoint quản trị khi role của phiên không nằm trong danh sách cho phép.
+    def require_role(session, *roles):
+        if session["role"] not in roles:
+            raise ApiProblem(403, "forbidden", "Phiên hiện tại không có quyền dùng chức năng này.")
+
     @app.get("/api/health")
+    # Kiểm tra database và trả provider/model, trạng thái index RAG mà không gọi Gemini.
     def health():
         with db() as conn:
             conn.execute("SELECT 1 FROM products LIMIT 1").fetchone()
-        return {"status": "ok", "llm_provider": settings.llm_provider, "model_id": app.state.llm_client.model_id}
+        return {"status": "ok", "llm_provider": settings.llm_provider, "model_id": app.state.llm_client.model_id,
+                "rag_ready": app.state.knowledge.ready}
 
     @app.post("/api/session", status_code=201)
+    # Tạo phiên mới; phiên staff/admin mô phỏng chỉ mở được khi gửi đúng khóa demo trong .env.
     def start_session(request: Request):
-        limiter.check("session", request.client.host if request.client else "local", settings.session_limit)
+        limiter.check("session", _client_ip(request), settings.session_limit)
+        role = demo_role(settings, request.headers.get("X-Demo-Role"), request.headers.get("X-Demo-Key"))
         with db() as conn:
-            return new_session(conn, settings.session_ttl)
+            return new_session(conn, settings.session_ttl, role)
 
     @app.delete("/api/session")
+    # Thu hồi token của phiên hiện tại để token đó không truy cập tiếp được.
     def end_session(request: Request):
         with session_db(request) as (conn, session, ctx):
             conn.execute("DELETE FROM api_sessions WHERE token_hash=?", (session["token_hash"],))
         return {"revoked": True}
 
     @app.get("/api/products")
+    # Trả danh sách sản phẩm đang bán theo định dạng mà frontend sử dụng.
     def products():
         with db() as conn:
             return {"products": [product_view(p) for p in catalog.list_products(conn)]}
 
     @app.get("/api/products/{product_id}")
+    # Trả chi tiết một sản phẩm cùng giá, biến thể và tồn kho trong database.
     def product(product_id: int):
         with db() as conn:
             return product_view(catalog.get_product(conn, product_id))
 
     @app.get("/api/cart")
+    # Đọc giỏ hàng thuộc phiên đã xác thực; chưa có giỏ thì trả giỏ trống.
     def get_cart(request: Request):
         with session_db(request) as (conn, session, ctx):
             return cart_view(conn, session, ctx)
 
     @app.post("/api/cart/items")
+    # Thêm hoặc gộp sản phẩm vào giỏ của phiên và kiểm tra số lượng, tồn kho.
     def add_cart_item(body: CartItem, request: Request):
         with session_db(request) as (conn, session, ctx), transaction(conn):
             cart = cart_order(conn, session, ctx, create=True)
             return order_view(conn, orders.add_item(conn, ctx, cart["id"], body.sku, body.quantity))
 
     @app.patch("/api/cart/items/{item_id}")
+    # Đổi số lượng của một dòng trong giỏ hiện tại và trả giỏ đã tính lại tiền.
     def edit_cart_item(item_id: str, body: QuantityChange, request: Request):
         with session_db(request) as (conn, session, ctx), transaction(conn):
             cart = cart_order(conn, session, ctx)
@@ -176,6 +217,7 @@ def create_app(settings=None, llm_client=None):
             return order_view(conn, orders.set_item_quantity(conn, ctx, cart["id"], row["sku"], body.quantity))
 
     @app.delete("/api/cart/items/{item_id}")
+    # Xóa một dòng khỏi giỏ hiện tại và trả trạng thái giỏ sau khi xóa.
     def delete_cart_item(item_id: str, request: Request):
         with session_db(request) as (conn, session, ctx), transaction(conn):
             cart = cart_order(conn, session, ctx)
@@ -185,23 +227,27 @@ def create_app(settings=None, llm_client=None):
             return order_view(conn, orders.remove_item(conn, ctx, cart["id"], row["sku"]))
 
     @app.post("/api/orders")
+    # Gửi giỏ hàng thành đơn chờ xác nhận, dùng khóa chống tạo trùng nếu được cung cấp.
     def create_order(body: Checkout, request: Request):
         key = request_key(request.headers.get("Idempotency-Key"))
         with session_db(request) as (conn, session, ctx):
             return checkout(conn, ctx, session, body.shipping.model_dump(), key)
 
     @app.get("/api/orders")
+    # Liệt kê tối đa 100 đơn đã gửi của chính phiên hiện tại, không gồm giỏ chưa gửi.
     def list_orders(request: Request):
         with session_db(request) as (conn, session, ctx):
             found = orders.list_orders(conn, session["owner_id"], statuses=["pending_confirmation", "confirmed", "cancelled"], limit=100)
             return {"orders": [order_view(conn, o) for o in found]}
 
     @app.get("/api/orders/{order_id}")
+    # Lấy chi tiết đơn sau khi kiểm tra mã đơn và quyền sở hữu của phiên.
     def get_order(order_id: str, request: Request):
         with session_db(request) as (conn, session, ctx):
             return order_view(conn, owned_order(conn, session["owner_id"], order_number(order_id)))
 
     @app.patch("/api/orders/{order_id}/items/{item_id}")
+    # Cập nhật số lượng hoặc biến thể của một dòng đơn mà phiên được phép sửa.
     def edit_order_item(order_id: str, item_id: str, body: ItemChange, request: Request):
         with session_db(request) as (conn, session, ctx):
             order = update_item(conn, ctx, session["owner_id"], order_number(order_id), item_id,
@@ -209,11 +255,66 @@ def create_app(settings=None, llm_client=None):
             return order_view(conn, order)
 
     @app.post("/api/chat")
+    # Nhận tin nhắn, kiểm tra phiên/giới hạn gọi chat rồi chuyển sang luồng xử lý bot.
     def chat_message(body: ChatRequest, request: Request):
         key = request_key(request.headers.get("Idempotency-Key"))
         with session_db(request) as (conn, session, ctx):
             limiter.check("chat", session["owner_id"], settings.chat_limit)
-            return chat(conn, ctx, session, body.message, app.state.llm_client, key)
+            return chat(conn, ctx, session, body.message, app.state.llm_client, key, app.state.knowledge)
+
+    @app.post("/api/knowledge")
+    # Hỏi đáp tài liệu thuần (chỉ đọc): quyền lấy từ phiên, không bao giờ từ body.
+    def knowledge_query(body: KnowledgeRequest, request: Request):
+        with session_db(request) as (conn, session, ctx):
+            limiter.check("chat", session["owner_id"], settings.chat_limit)
+            result = app.state.knowledge.answer(conn, body.question, session["role"])
+            with transaction(conn):
+                log_event(conn, ctx, "knowledge_query", details={
+                    "role": session["role"], "status": result["status"],
+                    "citations": [c["chunk_id"] for c in result["citations"]],
+                    "index_id": result["debug"].get("index_id")})
+            return {**knowledge_view(result, session["role"]), "request_id": ctx.request_id}
+
+    @app.get("/api/knowledge/sources/{chunk_id}")
+    # Mở đoạn tài liệu được trích dẫn; đoạn ngoài quyền và đoạn không tồn tại trả cùng một lỗi 404.
+    def knowledge_source(chunk_id: str, request: Request):
+        with session_db(request) as (conn, session, ctx):
+            chunk = app.state.knowledge.source(chunk_id, session["role"])
+            if chunk is None:
+                raise ApiProblem(404, "not_found", "Không tìm thấy đoạn tài liệu trong phạm vi được phép.")
+            return {"chunk_id": chunk.chunk_id, "doc_id": chunk.doc_id, "title": chunk.title, "section": chunk.section,
+                    "version": chunk.version, "source": chunk.source, "text": chunk.text.split("\n", 1)[-1],
+                    "skus": [s for s in chunk.skus if s in chunk.text] or chunk.skus, "product_ids": chunk.product_ids}
+
+    @app.get("/api/admin/index")
+    # Trạng thái index, release corpus và metadata nguồn cho staff/admin.
+    def admin_index(request: Request):
+        with session_db(request) as (conn, session, ctx):
+            require_role(session, "staff", "admin")
+            knowledge = app.state.knowledge
+            knowledge.check_release(conn)
+            return {"role": session["role"], "index": knowledge.status(), "corpus": corpus_service.corpus_status(conn),
+                    "documents": corpus_service.list_documents(conn, session["role"]),
+                    "releases": knowledge.releases() if session["role"] == "admin" else None}
+
+    @app.post("/api/admin/reindex")
+    # Build hoặc activate (kể cả rollback) index theo release; chỉ admin và luôn ghi audit.
+    def admin_reindex(body: ReindexRequest, request: Request):
+        with session_db(request) as (conn, session, ctx):
+            require_role(session, "admin")
+            knowledge = app.state.knowledge
+            try:
+                if body.action == "build":
+                    manifest = knowledge.build(body.release)
+                    outcome = {"index_id": manifest["index_id"], "chunk_count": manifest["chunk_count"]}
+                else:
+                    outcome = knowledge.activate(conn, body.release, session["owner_id"])
+            except IndexIntegrityError as err:
+                raise ApiProblem(409, "index_error", str(err)) from None
+            with transaction(conn):
+                log_event(conn, ctx, f"index_{body.action}", details={"release": body.release,
+                                                                      "index_id": outcome.get("index_id")})
+            return {"action": body.action, "release": body.release, "result": outcome}
 
     return app
 

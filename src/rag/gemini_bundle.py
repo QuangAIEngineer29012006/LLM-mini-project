@@ -37,12 +37,12 @@ def summary(index_dir):
 
 
 class GeminiIndex:
-    """A release's Gemini index, validated once on load (hashes, mapping, vectors) instead of on every query."""
+    """A release's Gemini index, validated once on load (DB text, mapping, vectors) instead of on every query."""
 
-    def __init__(self, index_dir, manifest_path):
+    def __init__(self, index_dir, manifest_path, db_path=None):
         self.dir = Path(index_dir)
         try:
-            raw, self.rows = gemini_index.validate_index(manifest_path, self.dir)
+            raw, self.rows = gemini_index.validate_index(manifest_path, self.dir, db_path)
         except gemini_index.RAGError as err:
             raise IndexIntegrityError(str(err)) from None
         self.manifest = describe(raw)
@@ -77,14 +77,15 @@ class GeminiIndex:
         return [Hit(self.by_id[h["chunk_id"]], h["score"], h["rank"]) for h in hits]
 
 
-def build(manifest_path, index_root):
-    raw = gemini_index.build_index(manifest_path, Path(index_root) / f"{load_manifest(Path(manifest_path))['corpus_release']}-gemini")
+def build(manifest_path, index_root, db_path=None):
+    folder = Path(index_root) / f"{load_manifest(Path(manifest_path))['corpus_release']}-gemini"
+    raw = gemini_index.build_index(manifest_path, folder, db_path)
     return describe(raw)
 
 
-def activate(index_dir, manifest_path, pointer_path):
+def activate(index_dir, manifest_path, pointer_path, db_path=None):
     """Validate the index, then atomically point the runtime at it."""
-    index = GeminiIndex(index_dir, manifest_path)
+    index = GeminiIndex(index_dir, manifest_path, db_path)
     pointer = {**index.manifest, "index_dir": _relative(index.dir),
                "activated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     pointer_path = Path(pointer_path)
@@ -94,14 +95,14 @@ def activate(index_dir, manifest_path, pointer_path):
     return index
 
 
-def load_active(pointer_path):
+def load_active(pointer_path, db_path=None):
     try:
         pointer = json.loads(Path(pointer_path).read_text(encoding="utf-8"))
         index_dir, manifest_path = Path(pointer["index_dir"]), Path(pointer["manifest_path"])
     except (OSError, ValueError, KeyError):
         raise IndexIntegrityError("Chưa có index Gemini active (artifacts/index_manifest.json)") from None
     index = GeminiIndex(index_dir if index_dir.is_absolute() else REPO_ROOT / index_dir,
-                        manifest_path if manifest_path.is_absolute() else REPO_ROOT / manifest_path)
+                        manifest_path if manifest_path.is_absolute() else REPO_ROOT / manifest_path, db_path)
     if index.manifest["index_sha256"] != pointer.get("index_sha256"):
         raise IndexIntegrityError("Con trỏ index active không khớp index trên đĩa")
     return index

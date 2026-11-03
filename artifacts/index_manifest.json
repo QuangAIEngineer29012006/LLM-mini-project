@@ -1,0 +1,28 @@
+{
+  "index_id": "1.1.0-gemini-14e12283",
+  "corpus_release": "1.1.0",
+  "manifest_path": "data_config/corpus_manifest_v1.1.json",
+  "embedding": {
+    "provider": "gemini",
+    "model": "gemini-embedding-001",
+    "dimension": 3072,
+    "query_encoding": "RETRIEVAL_QUERY",
+    "document_encoding": "RETRIEVAL_DOCUMENT",
+    "metric": "cosine_similarity"
+  },
+  "chunk_config": {
+    "strategy": "db_section_word_split",
+    "max_chars": 900,
+    "overlap_chars": 120
+  },
+  "chunk_count": 86,
+  "chunks_by_access": {
+    "public": 64,
+    "staff": 13,
+    "admin": 9
+  },
+  "index_sha256": "14e12283eb3f73707a13c588dfbd7e2fa0ce713aad88bf90a335d5bae240cb98",
+  "built_at": "2026-11-02T09:30:34.076179+00:00",
+  "index_dir": "artifacts/index/1.1.0-gemini",
+  "activated_at": "2026-11-02T09:30:34+00:00"
+}

@@ -1,5 +1,9 @@
 # Kết quả kiểm tra bản tổng hợp
 
+Đặt hàng qua bot (22/10): luồng nhận balo xám 15inch → hỏi số lượng/giao nhận → tạo đơn đã kiểm tra bằng Gemini thật trên SQLite riêng. 180 test Python và 12 React đạt. Xem [báo cáo đặt hàng qua bot](chat_purchase_2026-10-22/REPORT.md).
+
+Cập nhật 22/10/2026: đã rà soát React và chạy lại trên macOS; 169 test Python + 9 regression React đạt, npm ci/TypeScript/build đạt, live Gemini qua UI trả đúng giá/tồn. Xem [báo cáo frontend](frontend_review_2026-10-22/REPORT.md) cho phạm vi, ảnh và các giới hạn kiểm tra. Phần bên dưới là kết quả bàn giao ngày 21/10.
+
 Kiểm tra ngày 21/10/2026 trên Windows, Python 3.12.14. UI chính: React/TypeScript/Vite. Prompt: `shop-assistant-v3`.
 
 | Hạng mục | Kết quả | Bằng chứng / lệnh |

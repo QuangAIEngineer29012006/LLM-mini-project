@@ -1,0 +1,12 @@
+/Users/mac/Intern FSOFT/projects/miniproject4/LLM-mini-project/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+.....................................................................................................
+----------------------------------------------------------------------
+Ran 101 tests in 1.657s
+
+OK
+...............................................................................
+----------------------------------------------------------------------
+Ran 79 tests in 0.205s
+
+OK

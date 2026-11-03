@@ -2,6 +2,7 @@ from database.shop_db.errors import DataServiceError
 
 
 class ApiProblem(Exception):
+    # Lưu mã HTTP, mã lỗi, thông báo và lỗi từng trường để API phản hồi thống nhất.
     def __init__(self, status, code, message, fields=None):
         self.status = status
         self.code = code
@@ -9,6 +10,7 @@ class ApiProblem(Exception):
         self.fields = fields or {}
 
 
+# Ánh xạ lỗi database sang mã HTTP và đổi tên trường cho khớp dữ liệu frontend.
 def database_problem(err: DataServiceError):
     code = err.code
     status = 409

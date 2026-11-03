@@ -9,6 +9,7 @@ import numpy as np
 
 from database.shop_db.sku_sync_service import REPO_ROOT, load_manifest, validate_manifest
 
+from . import corpus_source
 from .chunker import CHUNK_CONFIG, Chunk, chunk_document
 
 ACCESS_LEVELS = ("public", "staff", "admin")
@@ -38,14 +39,18 @@ def _relative(path) -> str:
     return path.relative_to(REPO_ROOT).as_posix() if path.is_relative_to(REPO_ROOT) else str(path)
 
 
-def build_bundle(manifest_path, embedder, out_root=INDEX_ROOT, repo_root=REPO_ROOT):
-    """Validate the corpus manifest, chunk every document and write one vector file per access level."""
+def build_bundle(manifest_path, embedder, out_root=INDEX_ROOT, repo_root=REPO_ROOT, db_path=None):
+    """Validate the corpus manifest, chunk the DB section text of every document and write one vector file per access level."""
     manifest_path = Path(manifest_path)
     manifest = load_manifest(manifest_path)
     report = validate_manifest(manifest, repo_root)
     if not report["ok"]:
         raise IndexIntegrityError("Manifest không hợp lệ: " + "; ".join(e["detail"] for e in report["errors"][:5]))
-    chunks = [c for entry in manifest["documents"] for c in chunk_document(entry, repo_root)]
+    try:
+        documents = corpus_source.load_documents(manifest, db_path)
+    except corpus_source.CorpusTextError as err:
+        raise IndexIntegrityError(str(err)) from None
+    chunks = [c for document in documents for c in chunk_document(document)]
     if len({c.chunk_id for c in chunks}) != len(chunks):
         raise IndexIntegrityError("chunk_id bị trùng")
     bundle = Path(out_root) / f"{manifest['corpus_release']}-{embedder.provider}"
