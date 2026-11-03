@@ -1,8 +1,8 @@
 {
-  "timestamp_utc": "2026-10-21T15:25:51.520338+00:00",
+  "timestamp_utc": "2026-11-03T08:33:20.721966+00:00",
   "provider": "fake",
   "model_id": "fake-rules-v1",
-  "prompt_version": "shop-assistant-v3",
+  "prompt_version": "shop-assistant-v5",
   "temperature": null,
   "llm_max_retries": 0,
   "llm_timeout_seconds": 12,
@@ -281,7 +281,7 @@
         }
       ],
       "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
-      "latency_ms": 31.0
+      "latency_ms": 16.0
     },
     {
       "id": "M01",
@@ -317,7 +317,7 @@
           ],
           "error_type": null,
           "interpretation_source": "fake",
-          "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
+          "reply": "Đã chọn: Áo thun basic cotton — Đen / M (150,000 VND/sản phẩm). Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
         }
       ],
       "provider_calls": [
@@ -359,8 +359,8 @@
           "retry_count": 0
         }
       ],
-      "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ.",
-      "latency_ms": 15.0
+      "reply": "Đã chọn: Áo thun basic cotton — Đen / M (150,000 VND/sản phẩm). Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ.",
+      "latency_ms": 16.0
     },
     {
       "id": "M02",
@@ -560,7 +560,7 @@
           ],
           "error_type": null,
           "interpretation_source": "fake",
-          "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
+          "reply": "Đã chọn: Áo thun basic cotton — Đen / M (150,000 VND/sản phẩm). Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
         },
         {
           "intent": "create_order",
@@ -638,7 +638,7 @@
         }
       ],
       "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
-      "latency_ms": 31.0
+      "latency_ms": 32.0
     },
     {
       "id": "M05",
@@ -694,7 +694,7 @@
           ],
           "error_type": null,
           "interpretation_source": "fake",
-          "reply": "Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
+          "reply": "Đã chọn: Áo thun basic cotton — Đen / M (150,000 VND/sản phẩm). Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ."
         },
         {
           "intent": "create_order",
@@ -841,7 +841,7 @@
           "missing_fields": [],
           "error_type": null,
           "interpretation_source": "fake",
-          "reply": "Không đủ hàng: TSH-WHT-M còn 0, bạn yêu cầu 1. Vui lòng chọn lại số lượng hoặc biến thể."
+          "reply": "Không đủ hàng: TSH-WHT-M còn 0. Vui lòng chọn biến thể khác."
         }
       ],
       "provider_calls": [
@@ -883,8 +883,8 @@
           "retry_count": 0
         }
       ],
-      "reply": "Không đủ hàng: TSH-WHT-M còn 0, bạn yêu cầu 1. Vui lòng chọn lại số lượng hoặc biến thể.",
-      "latency_ms": 15.0
+      "reply": "Không đủ hàng: TSH-WHT-M còn 0. Vui lòng chọn biến thể khác.",
+      "latency_ms": 16.0
     },
     {
       "id": "I02",
@@ -1080,7 +1080,7 @@
         }
       ],
       "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "F02",
@@ -1165,7 +1165,7 @@
         }
       ],
       "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi.",
-      "latency_ms": 31.0
+      "latency_ms": 32.0
     },
     {
       "id": "S01",
@@ -1202,7 +1202,7 @@
       ],
       "provider_calls": [],
       "reply": "Yêu cầu này cần nhân viên xem lại. Hệ thống chưa thay đổi đơn hàng.",
-      "latency_ms": 16.0
+      "latency_ms": 15.0
     },
     {
       "id": "S02",
@@ -1279,7 +1279,7 @@
         }
       ],
       "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn.",
-      "latency_ms": 31.0
+      "latency_ms": 16.0
     },
     {
       "id": "Q01",
@@ -1429,7 +1429,7 @@
         }
       ],
       "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Trắng / M (TSH-WHT-M): giá 150,000 VND; hết hàng (còn 0 sản phẩm).\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
-      "latency_ms": 15.0
+      "latency_ms": 16.0
     }
   ]
 }
