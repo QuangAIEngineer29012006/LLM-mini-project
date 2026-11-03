@@ -147,12 +147,12 @@
     }
   ],
   "files": {
-    "vectors_public.npy": "7b2d1887dfe0234e65707b19dc299a7fad4a80707e06e339e1eb477fa4b284ab",
-    "vectors_staff.npy": "0b26e27250204324c49a2bce8d5b3b89df86b1706d15658bde0b76b3fb1c9478",
-    "vectors_admin.npy": "3753564ef8d02c42a8ab8d322e752fd093c499450c770f3e854b3a68f67423e0",
+    "vectors_public.npy": "a7340f74714bed1bc11ef60661b0de057660558956d2d06da9e54a33fdbe3d7f",
+    "vectors_staff.npy": "850605b21bf091f762b0c6269d01da850af0839002631ef33f1854b13f9e0b6c",
+    "vectors_admin.npy": "f11207dbe1c25a1a33168b98e464c7def3f7f22bbccc8318184792dfcefa4898",
     "chunks.jsonl": "2cc2a6d0c8eb7463e81fdb83db8ff0f58524aa2d833c0a9fce2a5484725d6621"
   },
-  "built_at": "2026-11-02T09:27:26+00:00",
+  "built_at": "2026-11-03T08:50:42+00:00",
   "bundle_dir": "artifacts/index/1.1.0-fake",
-  "activated_at": "2026-11-02T09:27:26+00:00"
+  "activated_at": "2026-11-03T08:50:42+00:00"
 }

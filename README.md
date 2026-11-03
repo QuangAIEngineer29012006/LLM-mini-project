@@ -103,7 +103,7 @@ Quyền được áp **trước** retrieval: mỗi role chỉ nạp vector của
 
 ### Giới hạn
 
-- Evaluation: bản offline (fake) trên dev/test; bản Gemini đầy đủ với index của TV2 trên test đạt 11/17, Hit@3 1,00, câu trả lời có đúng bằng chứng 90% (trước khi ghép nhánh `RAG`: 13/17). Hai case giảm do trích thêm đoạn “Từ chối bảo hành” ngoài nhãn, một case do đoạn bằng chứng sát dưới ngưỡng; chi tiết ở mục 3d của báo cáo.
+- Evaluation: bản offline (fake) trên dev/test; lần chạy lại test fake hiện tại đạt contract 13/17 và strict relevance-label 11/17, Hit@3 0,700, Recall@5 0,683, MRR 0,650. Bản Gemini đầy đủ với index của TV2 trên test đạt 11/17, Hit@3 1,00, câu trả lời có đúng bằng chứng 90%; chi tiết và định nghĩa hai loại pass ở [báo cáo evaluation](artifacts/evaluation_report.md).
 - Mỗi câu hỏi kiến thức tốn 3 lượt gọi Gemini (router, embedding, trả lời); nội dung tài liệu được gửi sang Google khi build index.
 - Router fake là regex: câu paraphrase như “muốn đổi màu khác được không” có thể bị hiểu thành sửa đơn.
 - Phát hiện `access_denied` dựa trên danh sách chủ đề nội bộ; câu hỏi nội bộ diễn đạt lạ có thể nhận `insufficient_evidence` thay vì `access_denied` (không lộ dữ liệu, chỉ sai nhãn trạng thái).

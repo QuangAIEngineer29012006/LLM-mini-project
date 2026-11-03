@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-11-03T08:33:20.721966+00:00",
+  "timestamp_utc": "2026-11-03T08:51:35.298718+00:00",
   "provider": "fake",
   "model_id": "fake-rules-v1",
   "prompt_version": "shop-assistant-v5",
@@ -179,7 +179,7 @@
         }
       ],
       "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "H03",
@@ -281,7 +281,7 @@
         }
       ],
       "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "M01",
@@ -360,7 +360,7 @@
         }
       ],
       "reply": "Đã chọn: Áo thun basic cotton — Đen / M (150,000 VND/sản phẩm). Vui lòng bổ sung: tên người nhận, số điện thoại, địa chỉ đầy đủ.",
-      "latency_ms": 16.0
+      "latency_ms": 32.0
     },
     {
       "id": "M02",
@@ -437,7 +437,7 @@
         }
       ],
       "reply": "Có nhiều biến thể phù hợp: TSH-BLK-L (Đen / L); TSH-BLK-M (Đen / M); TSH-WHT-L (Trắng / L); TSH-WHT-M (Trắng / M) Vui lòng bổ sung: màu/size.",
-      "latency_ms": 16.0
+      "latency_ms": 32.0
     },
     {
       "id": "M03",
@@ -638,7 +638,7 @@
         }
       ],
       "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
-      "latency_ms": 32.0
+      "latency_ms": 47.0
     },
     {
       "id": "M05",
@@ -809,7 +809,7 @@
         }
       ],
       "reply": "Đã tạo đơn nháp. Bạn có thể xem và sửa ở trang Đơn hàng; đơn đang chờ xác nhận.",
-      "latency_ms": 47.0
+      "latency_ms": 63.0
     },
     {
       "id": "I01",
@@ -884,7 +884,7 @@
         }
       ],
       "reply": "Không đủ hàng: TSH-WHT-M còn 0. Vui lòng chọn biến thể khác.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "I02",
@@ -959,7 +959,7 @@
         }
       ],
       "reply": "Không đủ hàng: SNK-WHT-41 còn 2, bạn yêu cầu 3. Vui lòng chọn lại số lượng hoặc biến thể.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "I03",
@@ -1080,7 +1080,7 @@
         }
       ],
       "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi.",
-      "latency_ms": 31.0
+      "latency_ms": 16.0
     },
     {
       "id": "F02",
@@ -1165,7 +1165,7 @@
         }
       ],
       "reply": "Chưa xử lý được tin nhắn do lỗi dịch vụ AI hoặc dữ liệu trả về không hợp lệ. Vui lòng thử lại. Đơn hàng chưa thay đổi.",
-      "latency_ms": 32.0
+      "latency_ms": 15.0
     },
     {
       "id": "S01",
@@ -1202,7 +1202,7 @@
       ],
       "provider_calls": [],
       "reply": "Yêu cầu này cần nhân viên xem lại. Hệ thống chưa thay đổi đơn hàng.",
-      "latency_ms": 15.0
+      "latency_ms": 32.0
     },
     {
       "id": "S02",
@@ -1279,7 +1279,7 @@
         }
       ],
       "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "Q01",
@@ -1429,7 +1429,7 @@
         }
       ],
       "reply": "Thông tin hiện tại từ cửa hàng:\n\n1. Áo thun basic cotton (Áo)\n- Trắng / M (TSH-WHT-M): giá 150,000 VND; hết hàng (còn 0 sản phẩm).\n\nBạn muốn xem kỹ sản phẩm, màu hoặc size nào?",
-      "latency_ms": 16.0
+      "latency_ms": 32.0
     }
   ]
 }

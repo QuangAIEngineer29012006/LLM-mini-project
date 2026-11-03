@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-11-03T08:33:25.397653+00:00",
+  "timestamp_utc": "2026-11-03T08:51:32.311028+00:00",
   "provider": "fake",
   "model_id": "fake-rules-v1",
   "prompt_version": "shop-assistant-v5",
@@ -166,7 +166,7 @@
         }
       ],
       "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
-      "latency_ms": 15.0
+      "latency_ms": 31.0
     },
     {
       "id": "L03",
@@ -243,7 +243,7 @@
         }
       ],
       "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "L04",
@@ -320,7 +320,7 @@
         }
       ],
       "reply": "Vui lòng bổ sung: sản phẩm hoặc SKU.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "L05",
@@ -398,7 +398,7 @@
         }
       ],
       "reply": "Hiện cửa hàng chưa có sản phẩm khớp yêu cầu trong catalog. Bạn có thể đổi từ khóa, màu/size hoặc mức giá để mình tìm lại.",
-      "latency_ms": 16.0
+      "latency_ms": 15.0
     },
     {
       "id": "L06",
@@ -543,7 +543,7 @@
         }
       ],
       "reply": "Chưa xác định được duy nhất một đơn nháp trong phiên. Vui lòng bổ sung: mã đơn.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "U01",
@@ -628,7 +628,7 @@
         }
       ],
       "reply": "Đã cập nhật đơn nháp và kiểm tra lại tồn kho.",
-      "latency_ms": 16.0
+      "latency_ms": 31.0
     },
     {
       "id": "U02",
@@ -840,7 +840,7 @@
         }
       ],
       "reply": "Dịch vụ AI đang giới hạn lượt yêu cầu. Vui lòng đợi khoảng một phút rồi gửi lại. Đơn hàng chưa thay đổi.",
-      "latency_ms": 15.0
+      "latency_ms": 31.0
     }
   ]
 }

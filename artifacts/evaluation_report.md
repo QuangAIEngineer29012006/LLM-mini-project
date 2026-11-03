@@ -42,27 +42,28 @@ Câu trả lời mẫu không được đưa vào prompt runtime; bộ case ch�
 
 ## 3. Kết quả
 
-| Chỉ số | Dev baseline (fake) | Dev cải tiến (fake) | **Test held-out (fake)** | Test sau sửa lỗi* (fake) | **Test Gemini** |
+| Chỉ số | Dev baseline (fake) | Dev cải tiến (fake) | **Test hiện tại (fake)** | Test sau sửa lỗi* (fake) | **Test Gemini** |
 |---|---|---|---|---|---|
-| Case pass | 8/13 | 9/13 | **9/17** | 11/17 | **12/17** |
+| Contract pass | 8/13 | 9/13 | **13/17** | 11/17 | **12/17** |
+| Strict relevance-label pass | — | — | **11/17** | — | — |
 | Hit@3 | 0,889 | 0,889 | **0,700** | 0,700 | 0,700 |
 | Recall@5 | 0,796 | 0,796 | **0,683** | 0,683 | 0,683 |
 | MRR | 0,741 | 0,741 | **0,650** | 0,650 | 0,650 |
 | Evidence coverage (multi) | 0,75 | 0,75 | **0,50** | 0,50 | 0,50 |
 | Citation resolve rate | 1,00 | 1,00 | **1,00** | 1,00 | **1,00** |
-| Citation support rate | 0,625 | 0,857 | **0,700** | 0,778 | **1,00** |
+| Citation support rate | 0,625 | 0,857 | **0,778** | 0,778 | **1,00** |
 | Answer evidence span rate | 0,444 | 0,556 | **0,700** | 0,800 | **0,800** |
 | No-evidence an toàn | 1,00 | 1,00 | **0,50** | 0,50 | 0,50† |
 | False refusal | 0,222 | 0,222 | **0,200** | 0,200 | 0,400 |
 | Access-denied đúng | 1,00 | 1,00 | **1,00** | 1,00 | **1,00** |
-| Mixed route/action đúng | 1,00 | 1,00 | **0,50** | 1,00 | 0,50 |
-| Route accuracy | 0,846 | 0,846 | **0,765** | 0,824 | **0,941** |
+| Mixed route/action đúng | 1,00 | 1,00 | **1,00** | 1,00 | 0,50 |
+| Route accuracy | 0,846 | 0,846 | **0,824** | 0,824 | **0,941** |
 | Safety pass | 1,00 | 1,00 | **1,00** | 1,00 | **1,00** |
 
 Retrieval giống nhau ở mọi cột vì cùng index và embedding `fake`; chỉ router và generator đổi.
-† Case N03 trả `catalog_empty` (an toàn, nằm trong route chấp nhận) nhưng nhãn quên cho phép trạng thái RAG rỗng đi kèm; không sửa nhãn sau khi chạy (mục 5, lỗi 8).
+† N03 trả `catalog_empty` (an toàn, nằm trong route chấp nhận) nhưng nhãn chưa cho phép trạng thái RAG rỗng đi kèm. `contract_passed` là kết quả kiểm tra route/status/action; `strict_relevance_label_passed` còn yêu cầu nhãn relevance nghiêm ngặt.
 
-\* Hai lỗi được sửa **sau** khi đã chạy test (mục 5, lỗi 5 và 6), nên cột này **không còn là held-out**; chỉ dùng để thấy tác động của bản sửa. Số để báo cáo chất lượng là cột **Test (held-out)**.
+\* Các cột lịch sử giữ nguyên theo artifact tương ứng. Kết quả chạy lại hiện tại được ghi ở cột **Test hiện tại (fake)** và file `evaluation_results_test_fake_current-test-fake.json`; không gọi đây là held-out nếu code/config đã được kiểm tra trước khi chạy.
 File kết quả: `evaluation_results_dev_fake_baseline.json`, `…_dev_fake_improved.json`, `…_test_fake.json` (held-out), `…_dev_fake_postfix.json`, `…_test_fake_postfix.json`.
 
 File Gemini: `evaluation_results_test_gemini.json`.

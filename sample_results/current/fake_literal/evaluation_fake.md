@@ -1,6 +1,6 @@
 # Evaluation: fake-rules-v1
 
-Prompt: `shop-assistant-v5`. UTC: 2026-11-03T08:33:25.397653+00:00.
+Prompt: `shop-assistant-v5`. UTC: 2026-11-03T08:51:32.311028+00:00.
 
 Kết quả: 11/11 case đạt các kiểm tra tự động.
 

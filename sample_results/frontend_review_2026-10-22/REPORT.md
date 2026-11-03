@@ -25,7 +25,7 @@ Giữ bố cục và bảng màu của frontend mới; không viết lại backe
 
 | Kiểm tra | Kết quả | Bằng chứng |
 |---|---|---|
-| Bộ test Python hiện có | 169/169 PASS: 90 application/tooling + 79 database | Chạy mới `.venv/bin/python scripts/test_all.py` trong lần rà soát này |
+| Bộ test Python tại snapshot 22/10 | 169/169 PASS: 90 application/tooling + 79 database | Kết quả lịch sử của lần rà soát ngày 22/10; lần chạy hiện tại được ghi tại `sample_results/current/verification.md` |
 | React regression | 9/9 PASS | [frontend-tests.txt](frontend-tests.txt), `frontend/src/App.test.tsx` |
 | Cài sạch dependency từ lockfile | PASS | [npm-ci.txt](npm-ci.txt) |
 | TypeScript + production build | PASS, Vite 7.3.7 | [build.txt](build.txt) |
