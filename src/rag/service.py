@@ -13,6 +13,7 @@ from src.llm_client import LLMError
 from src.quota import DailyBudget, DailyLimitReached
 
 from . import gemini_bundle
+from .corpus_source import release_db
 from .answer import FakeGenerator, GeminiGenerator, document_frequency
 from .embedder import FakeEmbedder
 from .gemini_index import EMBEDDING_MODEL, RAGError
@@ -74,7 +75,7 @@ class KnowledgeService:
             self.cache.clear()
             try:
                 if self.embedder is None:
-                    bundle = gemini_bundle.load_active(self.pointer)
+                    bundle = gemini_bundle.load_active(self.pointer, self.settings.db_path)
                 else:
                     bundle = load_active(self.pointer)
                     if bundle.manifest["embedding"]["provider"] != self.embedder.provider:
@@ -96,7 +97,13 @@ class KnowledgeService:
 
     @property
     def manifest_path(self):
-        return REPO_ROOT / self.bundle.manifest["manifest_path"] if self.bundle else None
+        """The active release's manifest, read from the pointer when the index itself failed to load."""
+        if self.bundle:
+            return REPO_ROOT / self.bundle.manifest["manifest_path"]
+        try:
+            return REPO_ROOT / json.loads(self.pointer.read_text(encoding="utf-8"))["manifest_path"]
+        except (OSError, ValueError, KeyError):
+            return None
 
     @property
     def ready(self):
@@ -210,13 +217,15 @@ class KnowledgeService:
         info = self.releases().get(release)
         if info is None:
             raise IndexIntegrityError(f"Không có manifest cho release {release}")
-        if self.embedder is None:
-            try:
-                return gemini_bundle.build(REPO_ROOT / info["manifest_path"], self.index_root)
-            except RAGError as err:
-                raise IndexIntegrityError(str(err)) from None
-        _, manifest = build_bundle(REPO_ROOT / info["manifest_path"], self.embedder, out_root=self.index_root)
-        return manifest
+        manifest_path = REPO_ROOT / info["manifest_path"]
+        with release_db(manifest_path) as db_path:
+            if self.embedder is None:
+                try:
+                    return gemini_bundle.build(manifest_path, self.index_root, db_path)
+                except RAGError as err:
+                    raise IndexIntegrityError(str(err)) from None
+            _, manifest = build_bundle(manifest_path, self.embedder, out_root=self.index_root, db_path=db_path)
+            return manifest
 
     def activate(self, conn, release, actor_id):
         """Switch DB metadata and the index pointer to one release together; old answers are dropped from cache."""
@@ -226,13 +235,19 @@ class KnowledgeService:
         bundle_dir = self.index_root / f"{release}-{self.provider}"
         manifest_path = REPO_ROOT / info["manifest_path"]
         if self.embedder is None:
-            gemini_bundle.GeminiIndex(bundle_dir, manifest_path)
+            # The Gemini index is checked against DB section text, which exists only once this release is synced;
+            # if that check fails, the previous release is synced back so DB and pointer stay on one release.
+            previous = self.manifest_path
+            sync_from_manifest(conn, manifest_path, actor_type="admin", actor_id=actor_id)
+            try:
+                gemini_bundle.activate(bundle_dir, manifest_path, self.pointer, self.settings.db_path)
+            except IndexIntegrityError:
+                if previous and previous != manifest_path:
+                    sync_from_manifest(conn, previous, actor_type="admin", actor_id=actor_id)
+                raise
         else:
             IndexBundle(bundle_dir)
-        sync_from_manifest(conn, manifest_path, actor_type="admin", actor_id=actor_id)
-        if self.embedder is None:
-            gemini_bundle.activate(bundle_dir, manifest_path, self.pointer)
-        else:
+            sync_from_manifest(conn, manifest_path, actor_type="admin", actor_id=actor_id)
             activate_bundle(bundle_dir, self.pointer)
         self.reload()
         self.check_release(conn)

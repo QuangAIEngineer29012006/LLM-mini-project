@@ -1,9 +1,11 @@
--- TV1: corpus metadata (bản sao đồng bộ từ data_config/corpus_manifest_*.json). Manifest là nguồn chuẩn.
+-- TV1: corpus metadata + nội dung văn bản trích xuất sẵn từ PDF. Manifest là nguồn chuẩn metadata.
+DROP VIEW  IF EXISTS v_corpus_active_sections;
 DROP VIEW  IF EXISTS v_corpus_sku_status;
 DROP VIEW  IF EXISTS v_corpus_active_documents;
 DROP TABLE IF EXISTS corpus_sync_events;
 DROP TABLE IF EXISTS corpus_document_skus;
 DROP TABLE IF EXISTS corpus_document_products;
+DROP TABLE IF EXISTS corpus_document_sections;
 DROP TABLE IF EXISTS corpus_document_versions;
 DROP TABLE IF EXISTS corpus_documents;
 DROP TABLE IF EXISTS corpus_releases;
@@ -43,11 +45,27 @@ CREATE TABLE corpus_document_versions (
     effective_date   TEXT NOT NULL,
     change_note      TEXT NOT NULL DEFAULT '',
     first_release    TEXT NOT NULL,
+    content_text     TEXT NOT NULL DEFAULT '',        -- toàn văn đã trích xuất tự động từ PDF (chuẩn hóa LF + heading ##)
+    body_text        TEXT NOT NULL DEFAULT '',        -- phần nội dung chính đã tách bỏ khung metadata đầu trang
     is_active        INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0, 1)),
     created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     UNIQUE (doc_id, version)
 );
 CREATE UNIQUE INDEX idx_corpus_one_active_version ON corpus_document_versions(doc_id) WHERE is_active = 1;
+
+CREATE TABLE corpus_document_sections (
+    id             INTEGER PRIMARY KEY,
+    version_id     INTEGER NOT NULL REFERENCES corpus_document_versions(id) ON DELETE CASCADE,
+    doc_id         TEXT    NOT NULL REFERENCES corpus_documents(doc_id) ON DELETE CASCADE,
+    version        TEXT    NOT NULL,
+    section_index  INTEGER NOT NULL CHECK (section_index >= 1),
+    section_title  TEXT    NOT NULL,
+    section_text   TEXT    NOT NULL,
+    char_start     INTEGER NOT NULL CHECK (char_start >= 0),
+    char_end       INTEGER NOT NULL CHECK (char_end >= char_start),
+    UNIQUE (doc_id, version, section_index)
+);
+CREATE INDEX idx_corpus_sections_doc_ver ON corpus_document_sections(doc_id, version, section_index);
 
 CREATE TABLE corpus_document_products (
     doc_id      TEXT    NOT NULL REFERENCES corpus_documents(doc_id) ON DELETE CASCADE,
@@ -96,4 +114,14 @@ FROM corpus_document_skus s
 JOIN product_variants pv ON pv.sku = s.sku
 JOIN products p          ON p.id = pv.product_id
 JOIN corpus_documents d  ON d.doc_id = s.doc_id;
+
+-- Nội dung từng mục (section) đã trích xuất sẵn từ PDF của các tài liệu đang active.
+CREATE VIEW v_corpus_active_sections AS
+SELECT d.doc_id, d.title, d.doc_type, d.category, d.access_level,
+       v.version, v.source_path,
+       s.section_index, s.section_title, s.section_text, s.char_start, s.char_end
+FROM corpus_documents d
+JOIN corpus_document_versions v ON v.doc_id = d.doc_id AND v.is_active = 1
+JOIN corpus_document_sections s ON s.version_id = v.id
+WHERE d.is_active = 1;
 

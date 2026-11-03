@@ -1,5 +1,5 @@
 {
-  "index_id": "1.1.0-gemini-834bad32",
+  "index_id": "1.1.0-gemini-14e12283",
   "corpus_release": "1.1.0",
   "manifest_path": "data_config/corpus_manifest_v1.1.json",
   "embedding": {
@@ -11,7 +11,7 @@
     "metric": "cosine_similarity"
   },
   "chunk_config": {
-    "strategy": "markdown_section_aware_word_split",
+    "strategy": "db_section_word_split",
     "max_chars": 900,
     "overlap_chars": 120
   },
@@ -21,8 +21,8 @@
     "staff": 13,
     "admin": 9
   },
-  "index_sha256": "834bad325365c9d9bc34afe429871455b406c2155e4dc47172b9ef27a787033c",
-  "built_at": "2026-10-29T07:28:58.728016+00:00",
+  "index_sha256": "14e12283eb3f73707a13c588dfbd7e2fa0ce713aad88bf90a335d5bae240cb98",
+  "built_at": "2026-11-02T09:30:34.076179+00:00",
   "index_dir": "artifacts/index/1.1.0-gemini",
-  "activated_at": "2026-10-30T06:42:40+00:00"
+  "activated_at": "2026-11-02T09:30:34+00:00"
 }

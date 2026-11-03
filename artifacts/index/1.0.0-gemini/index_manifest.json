@@ -1,17 +1,17 @@
 {
   "index_format_version": "2.0",
   "index_version": "1.0.0-rag-2.0",
-  "created_at_utc": "2026-10-30T06:46:15.899329+00:00",
+  "created_at_utc": "2026-11-02T09:29:23.982826+00:00",
   "corpus_release": "1.0.0",
   "corpus_manifest_path": "data_config/corpus_manifest_v1.0.json",
-  "corpus_manifest_sha256": "20824a1efe70d1e7604b2a648cc48c449b504086f45738e45c2e8766f4b3cc12",
+  "corpus_manifest_sha256": "07d6d34cd41ad22816d746eed6b3c6f4aadee436c4061e791f37affc63fa5994",
   "embedding_model": "gemini-embedding-001",
   "embedding_dimensions": 3072,
   "document_encoding": "RETRIEVAL_DOCUMENT",
   "query_encoding": "RETRIEVAL_QUERY",
   "normalization": "Gemini embedding values; cosine similarity computed at retrieval",
   "metric": "cosine_similarity",
-  "chunk_strategy": "markdown_section_aware_word_split",
+  "chunk_strategy": "db_section_word_split",
   "chunk_max_chars": 900,
   "chunk_overlap_chars": 120,
   "document_count": 17,
@@ -21,5 +21,5 @@
     "staff": 13,
     "admin": 9
   },
-  "index_sha256": "546133670c445df9c2aca1ff2fe429e9fd465dcb31851298458ee90e4abbdd95"
+  "index_sha256": "02d78efe7e4e25b280e42963c73dd41bc0b9c6cb5d33a273181cafaaa7e2ccf1"
 }

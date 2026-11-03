@@ -97,7 +97,7 @@ Contract trả lời kiến thức (cũng là khối `knowledge` trong response 
 ```json
 {"status": "answered | insufficient_evidence | access_denied | handoff | error",
  "answer": "Câu trả lời tiếng Việt có điều kiện cần thiết.",
- "citations": [{"chunk_id": "DOC-POL-WARRANTY@1.0#03", "doc_id": "DOC-POL-WARRANTY", "source": "data_config/corpus/policies/pol_bao_hanh.md",
+ "citations": [{"chunk_id": "DOC-POL-WARRANTY@1.0#03", "doc_id": "DOC-POL-WARRANTY", "source": "data_config/corpus/policies/pol_bao_hanh.pdf",
                 "version": "1.0", "title": "...", "section": "Bảo hành Balo laptop"}],
  "missing_information": ""}
 ```

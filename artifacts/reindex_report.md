@@ -20,8 +20,8 @@ Chunk ID gắn version (`<doc_id>@<version>#<n>`) nên citation luôn trỏ đú
 
 | Release | index_id | Chunk (public / staff / admin) | Build lại khớp bundle đã commit |
 |---|---|---|---|
-| 1.0.0 | `1.0.0-fake-17a26f86` | 85 (63 / 13 / 9) | Có (sha256 từng file trùng) |
-| 1.1.0 | `1.1.0-fake-143be753` | 86 (64 / 13 / 9) | Có |
+| 1.0.0 | `1.0.0-fake-82f55350` | 85 (63 / 13 / 9) | Có (sha256 từng file trùng) |
+| 1.1.0 | `1.1.0-fake-2cc2a6d0` | 86 (64 / 13 / 9) | Có |
 
 Mỗi bundle ở `artifacts/index/<release>-<provider>/` gồm `vectors_public.npy`, `vectors_staff.npy`, `vectors_admin.npy`, `chunks.jsonl`, `index_manifest.json`. Manifest ghi embedding provider/model/revision, dimension, normalization, metric, cách encode query/document, chunk config, release và manifest corpus nguồn, sha256 từng file. `artifacts/index_manifest.json` là con trỏ tới bundle đang active.
 

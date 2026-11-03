@@ -56,8 +56,8 @@ class Settings:
             raise ValueError("LLM_PROVIDER phải là fake hoặc gemini")
         if settings.llm_provider == "gemini" and not settings.api_key:
             raise ValueError("Chưa cấu hình GEMINI_API_KEY trong .env")
-        if not 1 <= settings.llm_timeout <= 30 or not 0 <= settings.llm_max_retries <= 2:
-            raise ValueError("Timeout phải từ 1-30 giây, retry từ 0-2")
+        if not 1 <= settings.llm_timeout <= 120 or not 0 <= settings.llm_max_retries <= 2:
+            raise ValueError("Timeout phải từ 1-120 giây, retry từ 0-2")
         maximum = 500 if settings.model_id == "gemini-3.5-flash-lite" else 20
         if not 0 <= settings.llm_daily_limit <= maximum:
             raise ValueError(f"Giới hạn gọi {settings.model_id} mỗi ngày phải từ 0-{maximum}")
